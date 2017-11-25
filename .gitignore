@@ -57,5 +57,8 @@ dkms.conf
 
 #Visual studio stuff.
 .vs/
-*/Debug/
-*/Release/
+Debug/
+Release/
+
+#Nuget
+packages/
