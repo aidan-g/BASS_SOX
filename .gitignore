@@ -50,3 +50,12 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+# Logs
+*.log
+*.tlog
+
+#Visual studio stuff.
+.vs/
+*/Debug/
+*/Release/
