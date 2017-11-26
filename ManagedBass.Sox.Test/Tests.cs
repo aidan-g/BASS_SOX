@@ -35,6 +35,8 @@ namespace ManagedBass.Sox.Test
                 ok &= BassSox.ChannelSetAttribute(playbackChannel, SoxChannelAttribute.Phase, SoxChannelPhase.Intermediate);
                 ok &= BassSox.ChannelSetAttribute(playbackChannel, SoxChannelAttribute.SteepFilter, true);
                 ok &= BassSox.ChannelSetAttribute(playbackChannel, SoxChannelAttribute.AllowAliasing, true);
+                ok &= BassSox.ChannelSetAttribute(playbackChannel, SoxChannelAttribute.BufferLength, 2);
+                ok &= BassSox.ChannelSetAttribute(playbackChannel, SoxChannelAttribute.Threads, 2);
                 Assert.IsTrue(ok, "Failed to set channel attribute.");
             }
 
@@ -49,7 +51,16 @@ namespace ManagedBass.Sox.Test
                 Assert.AreEqual(1, value);
                 ok &= BassSox.ChannelGetAttribute(playbackChannel, SoxChannelAttribute.AllowAliasing, out value);
                 Assert.AreEqual(1, value);
+                ok &= BassSox.ChannelGetAttribute(playbackChannel, SoxChannelAttribute.BufferLength, out value);
+                Assert.AreEqual(2, value);
+                ok &= BassSox.ChannelGetAttribute(playbackChannel, SoxChannelAttribute.Threads, out value);
+                Assert.AreEqual(2, value);
                 Assert.IsTrue(ok, "Failed to get channel attribute.");
+            }
+
+            if (!BassSox.StreamBuffer(playbackChannel))
+            {
+                Assert.Fail(string.Format("Failed to buffer the playback stream: {0}", Enum.GetName(typeof(Errors), Bass.LastError)));
             }
 
             if (!Bass.ChannelPlay(playbackChannel))

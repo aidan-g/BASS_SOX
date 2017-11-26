@@ -43,6 +43,22 @@ BOOL get_resampler(DWORD handle, BASS_SOX_RESAMPLER** resampler) {
 	return FALSE;
 }
 
+//Release the soxr resampler.
+void release_soxr(BASS_SOX_RESAMPLER* resampler) {
+	soxr_clear(resampler->soxr);
+	soxr_delete(resampler->soxr);
+	resampler->soxr = NULL;
+}
+
+void release_resampler_buffers(BASS_SOX_RESAMPLER* resampler) {
+	if (resampler->input_buffer) {
+		free(resampler->input_buffer);
+	}
+	if (resampler->output_buffer) {
+		free(resampler->output_buffer);
+	}
+}
+
 //Release the resampler and related resources for the specified BASS channel handle.
 BOOL release_resampler(DWORD handle) {
 	BYTE a;
@@ -53,23 +69,11 @@ BOOL release_resampler(DWORD handle) {
 		if (resamplers[a]->output_channel != handle) {
 			continue;
 		}
-		if (resamplers[a]->input_buffer) {
-			free(resamplers[a]->input_buffer);
-		}
-		if (resamplers[a]->output_buffer) {
-			free(resamplers[a]->output_buffer);
-		}
 		release_soxr(resamplers[a]);
+		release_resampler_buffers(resamplers[a]);
 		free(resamplers[a]);
 		resamplers[a] = NULL;
 		return TRUE;
 	}
 	return FALSE;
-}
-
-//Release the soxr resampler.
-void release_soxr(BASS_SOX_RESAMPLER* resampler) {
-	soxr_clear(resampler->soxr);
-	soxr_delete(resampler->soxr);
-	resampler->soxr = NULL;
 }

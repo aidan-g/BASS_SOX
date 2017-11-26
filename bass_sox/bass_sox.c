@@ -8,17 +8,6 @@ BOOL is_float(DWORD flags) {
 	return  (flags & BASS_SAMPLE_FLOAT) == BASS_SAMPLE_FLOAT;
 }
 
-//Get the corresponding soxr_datatype_t for the specified sample size (either short or float).
-soxr_datatype_t soxr_datatype(size_t sample_size) {
-	if (sample_size == sizeof(short)) {
-		return SOXR_INT16_I;
-	}
-	if (sample_size == sizeof(float)) {
-		return SOXR_FLOAT32_I;
-	}
-	return 0;
-}
-
 //Create a BASS stream containing a resampler payload for the specified frequency (freq).
 HSTREAM BASSSOXDEF(BASS_SOX_StreamCreate)(DWORD freq, DWORD flags, DWORD handle, void *user) {
 
@@ -29,6 +18,11 @@ HSTREAM BASSSOXDEF(BASS_SOX_StreamCreate)(DWORD freq, DWORD flags, DWORD handle,
 
 	if (!BASS_ChannelGetInfo(handle, &input_channel_info)) {
 		return BASS_ERROR_UNKNOWN;
+	}
+
+	if (input_channel_info.freq == freq) {
+		//Input and output frequency are the same, nothing to do.
+		return handle;
 	}
 
 	resampler = create_resampler();
@@ -53,12 +47,16 @@ HSTREAM BASSSOXDEF(BASS_SOX_StreamCreate)(DWORD freq, DWORD flags, DWORD handle,
 	resampler->output_frame_size = resampler->output_sample_size * resampler->channels;
 
 	register_resampler(resampler);
-	if (!alloc_resampler_buffers(resampler)) {
-		release_resampler(output_channel);
-		return BASS_ERROR_NOTAVAIL;
-	}
 
 	return output_channel;
+}
+
+BOOL BASSSOXDEF(BASS_SOX_StreamBuffer)(DWORD handle) {
+	BASS_SOX_RESAMPLER* resampler;
+	if (!get_resampler(handle, &resampler)) {
+		return FALSE;
+	}
+	return populate_resampler(resampler);
 }
 
 BOOL BASSSOXDEF(BASS_SOX_ChannelSetAttribute)(DWORD handle, DWORD attrib, DWORD value) {
@@ -78,6 +76,12 @@ BOOL BASSSOXDEF(BASS_SOX_ChannelSetAttribute)(DWORD handle, DWORD attrib, DWORD 
 		return TRUE;
 	case ALLOW_ALIASING:
 		resampler->allow_aliasing = value;
+		return TRUE;
+	case BUFFER_LENGTH:
+		resampler->buffer_length = value;
+		return TRUE;
+	case THREADS:
+		resampler->threads = value;
 		return TRUE;
 	}
 	resampler->reload = TRUE;
@@ -101,6 +105,12 @@ BOOL BASSSOXDEF(BASS_SOX_ChannelGetAttribute)(DWORD handle, DWORD attrib, DWORD 
 		return TRUE;
 	case ALLOW_ALIASING:
 		*value = resampler->allow_aliasing;
+		return TRUE;
+	case BUFFER_LENGTH:
+		*value = resampler->buffer_length;
+		return TRUE;
+	case THREADS:
+		*value = resampler->threads;
 		return TRUE;
 	}
 	return FALSE;

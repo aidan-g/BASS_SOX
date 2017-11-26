@@ -13,7 +13,10 @@ typedef struct {
 	int channels;
 	HSTREAM source_channel;
 	HSTREAM output_channel;
+	DWORD bass_error;
 	size_t ratio;
+	unsigned int threads;
+	size_t buffer_length;
 	size_t input_sample_size;
 	size_t input_frame_size;
 	size_t output_sample_size;
@@ -32,6 +35,8 @@ typedef struct {
 	soxr_error_t soxr_error;
 	BOOL reload;
 } BASS_SOX_RESAMPLER;
+
+BOOL populate_resampler(BASS_SOX_RESAMPLER* resampler);
 
 DWORD CALLBACK resampler_proc(HSTREAM handle, void *buffer, DWORD length, void *user);
 

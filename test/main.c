@@ -30,6 +30,18 @@ int main()
 		return 1;
 	}
 
+	BASS_SOX_ChannelSetAttribute(playback_channel, QUALITY, Q_VHQ);
+	BASS_SOX_ChannelSetAttribute(playback_channel, PHASE, LINEAR);
+	BASS_SOX_ChannelSetAttribute(playback_channel, STEEP_FILTER, TRUE);
+	BASS_SOX_ChannelSetAttribute(playback_channel, ALLOW_ALIASING, TRUE);
+	BASS_SOX_ChannelSetAttribute(playback_channel, BUFFER_LENGTH, 2);
+	BASS_SOX_ChannelSetAttribute(playback_channel, THREADS, 2);
+
+	if (!BASS_SOX_StreamBuffer(playback_channel)) {
+		printf("Failed to buffer playback stream: %d\n", BASS_ErrorGetCode());
+		return 1;
+	}
+
 	//Play the re sampler stream.
 	if (!BASS_ChannelPlay(playback_channel, FALSE)) {
 		printf("Failed to play stream: %d\n", BASS_ErrorGetCode());

@@ -8,7 +8,9 @@ namespace ManagedBass.Sox
         Quality = 0,
         Phase = 1,
         SteepFilter = 2,
-        AllowAliasing = 3
+        AllowAliasing = 3,
+        BufferLength = 4,
+        Threads = 5
     }
 
     public enum SoxChannelQuality
@@ -52,6 +54,18 @@ namespace ManagedBass.Sox
             return BASS_SOX_StreamCreate(Frequency, Flags, Handle, User);
         }
 
+        [DllImport(DllName)]
+        static extern bool BASS_SOX_StreamBuffer(int Handle);
+
+        /// <summary>
+        /// Prepare some data so the stream can play instantly.
+        /// </summary>
+        /// <param name="Handle">The stream's handle.</param>
+        /// <returns></returns>
+        public static bool StreamBuffer(int Handle)
+        {
+            return BASS_SOX_StreamBuffer(Handle);
+        }
 
         [DllImport(DllName)]
         static extern bool BASS_SOX_ChannelSetAttribute(int Handle, SoxChannelAttribute Attribute, int Value);

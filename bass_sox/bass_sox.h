@@ -12,7 +12,9 @@ typedef enum {
 	QUALITY = 0,
 	PHASE = 1,
 	STEEP_FILTER = 2,
-	ALLOW_ALIASING = 3
+	ALLOW_ALIASING = 3,
+	BUFFER_LENGTH = 4,
+	THREADS = 5
 } BASS_SOX_ATTRIBUTE;
 
 typedef enum {
@@ -37,6 +39,10 @@ typedef enum {
 //Create a BASS stream containing a resampler payload for the specified frequency (freq).
 __declspec(dllexport)
 HSTREAM BASSSOXDEF(BASS_SOX_StreamCreate)(DWORD freq, DWORD flags, DWORD handle, void *user);
+
+//Prepare some data so the stream can play instantly.
+__declspec(dllexport)
+BOOL BASSSOXDEF(BASS_SOX_StreamBuffer)(DWORD handle);
 
 //Set an attribute on the associated resampler.
 __declspec(dllexport)
