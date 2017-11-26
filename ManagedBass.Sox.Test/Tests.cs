@@ -29,6 +29,29 @@ namespace ManagedBass.Sox.Test
                 Assert.Fail(string.Format("Failed to create playback stream: {0}", Enum.GetName(typeof(Errors), Bass.LastError)));
             }
 
+            {
+                var ok = true;
+                ok &= BassSox.ChannelSetAttribute(playbackChannel, SoxChannelAttribute.Quality, SoxChannelQuality.VeryHigh);
+                ok &= BassSox.ChannelSetAttribute(playbackChannel, SoxChannelAttribute.Phase, SoxChannelPhase.Intermediate);
+                ok &= BassSox.ChannelSetAttribute(playbackChannel, SoxChannelAttribute.SteepFilter, true);
+                ok &= BassSox.ChannelSetAttribute(playbackChannel, SoxChannelAttribute.AllowAliasing, true);
+                Assert.IsTrue(ok, "Failed to set channel attribute.");
+            }
+
+            {
+                var ok = true;
+                var value = default(int);
+                ok &= BassSox.ChannelGetAttribute(playbackChannel, SoxChannelAttribute.Quality, out value);
+                Assert.AreEqual((int)SoxChannelQuality.VeryHigh, value);
+                ok &= BassSox.ChannelGetAttribute(playbackChannel, SoxChannelAttribute.Phase, out value);
+                Assert.AreEqual((int)SoxChannelPhase.Intermediate, value);
+                ok &= BassSox.ChannelGetAttribute(playbackChannel, SoxChannelAttribute.SteepFilter, out value);
+                Assert.AreEqual(1, value);
+                ok &= BassSox.ChannelGetAttribute(playbackChannel, SoxChannelAttribute.AllowAliasing, out value);
+                Assert.AreEqual(1, value);
+                Assert.IsTrue(ok, "Failed to get channel attribute.");
+            }
+
             if (!Bass.ChannelPlay(playbackChannel))
             {
                 Assert.Fail(string.Format("Failed to play the playback stream: {0}", Enum.GetName(typeof(Errors), Bass.LastError)));

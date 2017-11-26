@@ -105,7 +105,7 @@ namespace ManagedBass.Sox.Test
 
         private AsioProcedure GetAsioProcedure(int playbackChannel)
         {
-            return new Asio.AsioProcedure((Input, Channel, Buffer, Length, User) =>
+            return new AsioProcedure((Input, Channel, Buffer, Length, User) =>
             {
                 return Bass.ChannelGetData(playbackChannel, Buffer, Length);
             });

@@ -3,10 +3,6 @@
 #include "resampler_buffer.h"
 #include "resampler_registry.h"
 
-//TODO: Make these configurable.
-#define SOXR_QUALITY SOXR_VHQ | SOXR_LINEAR_PHASE
-#define SOXR_THREADS 1
-
 //Determine whether the specified flags imply BASS_SAMPLE_FLOAT.
 BOOL is_float(DWORD flags) {
 	return  (flags & BASS_SAMPLE_FLOAT) == BASS_SAMPLE_FLOAT;
@@ -21,24 +17,6 @@ soxr_datatype_t soxr_datatype(size_t sample_size) {
 		return SOXR_FLOAT32_I;
 	}
 	return 0;
-}
-
-//Construct a soxr_t for the specified resampler configuration.
-BOOL create_soxr_resampler(BASS_SOX_RESAMPLER* resampler) {
-	soxr_io_spec_t io_spec = soxr_io_spec(
-		soxr_datatype(resampler->input_sample_size),
-		soxr_datatype(resampler->output_sample_size));
-	soxr_quality_spec_t quality_spec = soxr_quality_spec(SOXR_QUALITY, 0);
-	soxr_runtime_spec_t runtime_spec = soxr_runtime_spec(SOXR_THREADS);
-
-	return resampler->soxr = soxr_create(
-		resampler->input_rate,
-		resampler->output_rate,
-		resampler->channels,
-		&resampler->soxr_error,
-		&io_spec,
-		&quality_spec,
-		&runtime_spec);
 }
 
 //Create a BASS stream containing a resampler payload for the specified frequency (freq).
@@ -74,10 +52,6 @@ HSTREAM BASSSOXDEF(BASS_SOX_StreamCreate)(DWORD freq, DWORD flags, DWORD handle,
 	resampler->output_sample_size = is_float(output_channel_info.flags) ? sizeof(float) : sizeof(short);
 	resampler->output_frame_size = resampler->output_sample_size * resampler->channels;
 
-	if (!create_soxr_resampler(resampler)) {
-		return BASS_SOX_ERROR_UNKNOWN;
-	}
-
 	register_resampler(resampler);
 	if (!alloc_resampler_buffers(resampler)) {
 		release_resampler(output_channel);
@@ -85,6 +59,51 @@ HSTREAM BASSSOXDEF(BASS_SOX_StreamCreate)(DWORD freq, DWORD flags, DWORD handle,
 	}
 
 	return output_channel;
+}
+
+BOOL BASSSOXDEF(BASS_SOX_ChannelSetAttribute)(DWORD handle, DWORD attrib, DWORD value) {
+	BASS_SOX_RESAMPLER* resampler;
+	if (!get_resampler(handle, &resampler)) {
+		return FALSE;
+	}
+	switch (attrib) {
+	case QUALITY:
+		resampler->quality = value;
+		return TRUE;
+	case PHASE:
+		resampler->phase = value;
+		return TRUE;
+	case STEEP_FILTER:
+		resampler->steep_filter = value;
+		return TRUE;
+	case ALLOW_ALIASING:
+		resampler->allow_aliasing = value;
+		return TRUE;
+	}
+	resampler->reload = TRUE;
+	return FALSE;
+}
+
+BOOL BASSSOXDEF(BASS_SOX_ChannelGetAttribute)(DWORD handle, DWORD attrib, DWORD *value) {
+	BASS_SOX_RESAMPLER* resampler;
+	if (!get_resampler(handle, &resampler)) {
+		return FALSE;
+	}
+	switch (attrib) {
+	case QUALITY:
+		*value = resampler->quality;
+		return TRUE;
+	case PHASE:
+		*value = resampler->phase;
+		return TRUE;
+	case STEEP_FILTER:
+		*value = resampler->steep_filter;
+		return TRUE;
+	case ALLOW_ALIASING:
+		*value = resampler->allow_aliasing;
+		return TRUE;
+	}
+	return FALSE;
 }
 
 //Release the BASS stream and associated resampler resources.
@@ -97,9 +116,9 @@ BOOL BASSSOXDEF(BASS_SOX_StreamFree)(HSTREAM handle) {
 
 //Get the last error encountered by sox.
 const char* BASSSOXDEF(BASS_SOX_GetLastError)(HSTREAM handle) {
-	BASS_SOX_RESAMPLER resampler;
+	BASS_SOX_RESAMPLER* resampler;
 	if (!get_resampler(handle, &resampler)) {
 		return "No such resampler.";
 	}
-	return resampler.soxr_error;
+	return resampler->soxr_error;
 }

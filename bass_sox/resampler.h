@@ -24,8 +24,13 @@ typedef struct {
 	void* output_buffer;
 	DWORD output_length;
 	DWORD output_position;
+	unsigned long quality;
+	unsigned long phase;
+	BOOL steep_filter;
+	BOOL allow_aliasing;
 	soxr_t soxr;
 	soxr_error_t soxr_error;
+	BOOL reload;
 } BASS_SOX_RESAMPLER;
 
 DWORD CALLBACK resampler_proc(HSTREAM handle, void *buffer, DWORD length, void *user);

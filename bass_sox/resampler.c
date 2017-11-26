@@ -2,6 +2,56 @@
 #include "resampler.h"
 #include "resampler_buffer.h"
 
+#define SOXR_THREADS 1
+#define SOXR_DEFAULT_QUALITY SOXR_VHQ
+#define SOXR_DEFAULT_PHASE SOXR_LINEAR_PHASE
+
+soxr_quality_spec_t get_quality_spec(BASS_SOX_RESAMPLER* resampler) {
+	unsigned long recipe = 0;
+	unsigned long flags = 0;
+	if (resampler->quality) {
+		recipe |= resampler->quality;
+	}
+	else {
+		recipe |= SOXR_DEFAULT_QUALITY;
+	}
+	if (resampler->phase) {
+		recipe |= resampler->phase;
+	}
+	else {
+		recipe |= SOXR_DEFAULT_PHASE;
+	}
+	if (resampler->steep_filter) {
+		recipe |= SOXR_STEEP_FILTER;
+	}
+	if (resampler->allow_aliasing) {
+		//No longer implemented.
+	}
+	return soxr_quality_spec(recipe, flags);
+}
+
+soxr_runtime_spec_t get_runtime_spec(BASS_SOX_RESAMPLER* resampler) {
+	return soxr_runtime_spec(SOXR_THREADS);
+}
+
+//Construct a soxr_t for the specified resampler configuration.
+BOOL create_soxr_resampler(BASS_SOX_RESAMPLER* resampler) {
+	soxr_io_spec_t io_spec = soxr_io_spec(
+		soxr_datatype(resampler->input_sample_size),
+		soxr_datatype(resampler->output_sample_size));
+	soxr_quality_spec_t quality_spec = get_quality_spec(resampler);
+	soxr_runtime_spec_t runtime_spec = get_runtime_spec(resampler);
+
+	return resampler->soxr = soxr_create(
+		resampler->input_rate,
+		resampler->output_rate,
+		resampler->channels,
+		&resampler->soxr_error,
+		&io_spec,
+		&quality_spec,
+		&runtime_spec);
+}
+
 DWORD CALLBACK resampler_proc(HSTREAM handle, void *buffer, DWORD length, void *user) {
 	void* actual_buffer = buffer;
 	size_t actual_length = length;
@@ -59,8 +109,21 @@ DWORD CALLBACK resampler_proc(HSTREAM handle, void *buffer, DWORD length, void *
 	//Calculate how many frames can be read/written.
 	input_frames = source_channel_read_length / resampler->input_frame_size;
 	output_frames = resampler->output_buffer_length / resampler->output_frame_size;
-	resample_input_read_length;
-	resample_output_written_length;
+
+	//If reload is requested then release the current resampler.
+	if (resampler->reload) {
+		release_soxr(resampler);
+	}
+
+	//If no resampler exists then create it.
+	if (!resampler->soxr) {
+		if (!create_soxr_resampler(resampler)) {
+#ifdef DEBUG
+			printf("Failed to create soxr resampler.\n");
+#endif
+			return 0;
+		}
+	}
 
 	//Inboke soxr to resample the input data and check for errors.
 	resampler->soxr_error = soxr_process(
@@ -113,4 +176,4 @@ DWORD CALLBACK resampler_proc(HSTREAM handle, void *buffer, DWORD length, void *
 		resampler->output_position = 0;
 		return resampler->output_length;
 	}
-}
+	}
