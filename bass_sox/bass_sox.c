@@ -2,6 +2,7 @@
 #include "resampler.h"
 #include "resampler_buffer.h"
 #include "resampler_registry.h"
+#include "background_updater.h"
 
 //Determine whether the specified flags imply BASS_SAMPLE_FLOAT.
 BOOL is_float(DWORD flags) {
@@ -20,10 +21,10 @@ HSTREAM BASSSOXDEF(BASS_SOX_StreamCreate)(DWORD freq, DWORD flags, DWORD handle,
 		return BASS_ERROR_UNKNOWN;
 	}
 
-	if (input_channel_info.freq == freq) {
-		//Input and output frequency are the same, nothing to do.
-		return handle;
-	}
+	//if (input_channel_info.freq == freq) {
+	//	//Input and output frequency are the same, nothing to do.
+	//	return handle;
+	//}
 
 	resampler = create_resampler();
 	output_channel = BASS_StreamCreate(freq, input_channel_info.chans, flags, &resampler_proc, resampler);
@@ -56,6 +57,9 @@ BOOL BASSSOXDEF(BASS_SOX_StreamBuffer)(DWORD handle) {
 	if (!get_resampler(handle, &resampler)) {
 		return FALSE;
 	}
+	if (resampler->background) {
+		return FALSE;
+	}
 	return populate_resampler(resampler);
 }
 
@@ -82,6 +86,12 @@ BOOL BASSSOXDEF(BASS_SOX_ChannelSetAttribute)(DWORD handle, DWORD attrib, DWORD 
 		return TRUE;
 	case THREADS:
 		resampler->threads = value;
+		return TRUE;
+	case BACKGROUND:
+		resampler->background = value;
+		if (resampler->background) {
+			ensure_background_update();
+		}
 		return TRUE;
 	}
 	resampler->reload = TRUE;
@@ -111,6 +121,9 @@ BOOL BASSSOXDEF(BASS_SOX_ChannelGetAttribute)(DWORD handle, DWORD attrib, DWORD 
 		return TRUE;
 	case THREADS:
 		*value = resampler->threads;
+		return TRUE;
+	case BACKGROUND:
+		*value = resampler->background;
 		return TRUE;
 	}
 	return FALSE;

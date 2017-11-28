@@ -59,6 +59,7 @@ dkms.conf
 .vs/
 Debug/
 Release/
+distribution/
 
 #Nuget
 packages/

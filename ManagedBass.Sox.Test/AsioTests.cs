@@ -33,6 +33,9 @@ namespace ManagedBass.Sox.Test
                 Assert.Fail(string.Format("Failed to create playback stream: {0}", Enum.GetName(typeof(Errors), Bass.LastError)));
             }
 
+            BassSox.ChannelSetAttribute(playbackChannel, SoxChannelAttribute.BufferLength, 5);
+            BassSox.ChannelSetAttribute(playbackChannel, SoxChannelAttribute.Background, true);
+
             if (!BassAsio.Init(0, AsioInitFlags.Thread))
             {
                 Assert.Fail(string.Format("Failed to initialize ASIO: {0}", Enum.GetName(typeof(Errors), BassAsio.LastError)));

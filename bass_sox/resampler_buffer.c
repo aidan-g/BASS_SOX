@@ -1,54 +1,45 @@
+#include <stdio.h>
 #include "resampler_buffer.h"
 
 #define DEFAULT_BUFFER_LENGTH 1
 
-//Return a pointer to buffer offset by the specified position.
-void* offset_buffer(BASS_SOX_RESAMPLER* resampler, DWORD position, void* buffer) {
-	//We actually have the size of the data in resampler.sample_size 
-	//but we need to cast in order to do pointer arithmetic.
-	//Kind of awkward.
-	if (position) {
-		if (resampler->output_sample_size == sizeof(short)) {
-			return (short*)buffer + (position / sizeof(short));
-		}
-		if (resampler->output_sample_size == sizeof(float)) {
-			return (float*)buffer + (position / sizeof(float));
-		}
-	}
-	return buffer;
-}
 
-//A convinient routine to get the output buffer offset by the output position.
-void* offset_output_buffer(BASS_SOX_RESAMPLER* resampler) {
-	return offset_buffer(resampler, resampler->output_position, resampler->output_buffer);
-}
 
-//Allocate the "optimal" resampler buffers.
-BOOL alloc_resampler_buffers(BASS_SOX_RESAMPLER* resampler) {
-	size_t buffer_length;
+size_t get_buffer_length(BASS_SOX_RESAMPLER* resampler) {
 	if (resampler->buffer_length) {
-		buffer_length = resampler->buffer_length;
+		return resampler->buffer_length;
 	}
 	else {
-		buffer_length = DEFAULT_BUFFER_LENGTH;
+		return DEFAULT_BUFFER_LENGTH;
 	}
+}
 
-	if (resampler->input_buffer) {
-		free(resampler->input_buffer);
-	}
-	resampler->input_buffer_length = (resampler->input_rate * resampler->input_frame_size) * buffer_length;
-	resampler->input_buffer = malloc(resampler->input_buffer_length);
-	if (!resampler->input_buffer) {
-		return FALSE;
-	}
+BOOL alloc_resampler_buffers(BASS_SOX_RESAMPLER* resampler) {
+	resampler->buffer = calloc(sizeof(BASS_SOX_RESAMPLER_BUFFER), 1);
+	resampler->buffer->input_buffer_capacity = resampler->input_rate * resampler->input_frame_size;
+	resampler->buffer->output_buffer_capacity = resampler->output_rate * resampler->output_frame_size;
+	resampler->buffer->input_buffer = malloc(resampler->buffer->input_buffer_capacity);
+	resampler->buffer->output_buffer = malloc(resampler->buffer->output_buffer_capacity);
+	resampler->buffer->playback = calloc(sizeof(BASS_SOX_PLAYBACK_BUFFER), 1);
+	resampler->buffer->playback->buffer = ring_buffer_create(resampler->buffer->output_buffer_capacity, get_buffer_length(resampler));
+	return TRUE;
+}
 
-	if (resampler->output_buffer) {
-		free(resampler->output_buffer);
-	}
-	resampler->output_buffer_length = (resampler->output_rate * resampler->output_frame_size) * buffer_length;
-	resampler->output_buffer = malloc(resampler->output_buffer_length);
-	if (!resampler->output_buffer) {
-		return FALSE;
+BOOL release_resampler_buffers(BASS_SOX_RESAMPLER* resampler) {
+	if (resampler->buffer) {
+		if (resampler->buffer->playback) {
+			if (resampler->buffer->playback->buffer) {
+				ring_buffer_free(resampler->buffer->playback->buffer);
+			}
+			free(resampler->buffer->playback);
+		}
+		if (resampler->buffer->input_buffer) {
+			free(resampler->buffer->input_buffer);
+		}
+		if (resampler->buffer->output_buffer) {
+			free(resampler->buffer->output_buffer);
+		}
+		free(resampler->buffer);
 	}
 	return TRUE;
 }

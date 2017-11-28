@@ -36,6 +36,12 @@
     <ClInclude Include="resampler_buffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="background_updater.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ring_buffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Library Include="lib\bass.lib" />
@@ -54,6 +60,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="resampler_buffer.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="background_updater.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ring_buffer.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

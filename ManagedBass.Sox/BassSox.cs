@@ -10,7 +10,8 @@ namespace ManagedBass.Sox
         SteepFilter = 2,
         AllowAliasing = 3,
         BufferLength = 4,
-        Threads = 5
+        Threads = 5,
+        Background = 6
     }
 
     public enum SoxChannelQuality

@@ -34,13 +34,14 @@ int main()
 	BASS_SOX_ChannelSetAttribute(playback_channel, PHASE, LINEAR);
 	BASS_SOX_ChannelSetAttribute(playback_channel, STEEP_FILTER, TRUE);
 	BASS_SOX_ChannelSetAttribute(playback_channel, ALLOW_ALIASING, TRUE);
-	BASS_SOX_ChannelSetAttribute(playback_channel, BUFFER_LENGTH, 2);
+	BASS_SOX_ChannelSetAttribute(playback_channel, BUFFER_LENGTH, 5);
 	BASS_SOX_ChannelSetAttribute(playback_channel, THREADS, 2);
+	BASS_SOX_ChannelSetAttribute(playback_channel, BACKGROUND, TRUE);
 
-	if (!BASS_SOX_StreamBuffer(playback_channel)) {
-		printf("Failed to buffer playback stream: %d\n", BASS_ErrorGetCode());
-		return 1;
-	}
+	//if (!BASS_SOX_StreamBuffer(playback_channel)) {
+	//	printf("Failed to buffer playback stream: %d\n", BASS_ErrorGetCode());
+	//	return 1;
+	//}
 
 	//Play the re sampler stream.
 	if (!BASS_ChannelPlay(playback_channel, FALSE)) {
@@ -64,7 +65,7 @@ int main()
 		//Calculate the source position and write it out.
 		channel_position = BASS_ChannelGetPosition(source_channel, BASS_POS_BYTE);
 		channel_position_seconds = BASS_ChannelBytes2Seconds(source_channel, channel_position);
-		printf("%d/%d\n", (int)channel_position_seconds, (int)channel_length_seconds);
+		//printf("%d/%d\n", (int)channel_position_seconds, (int)channel_length_seconds);
 		Sleep(1000);
 	} while (TRUE);
 

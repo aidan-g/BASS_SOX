@@ -1,4 +1,6 @@
+#ifdef _DEBUG
 #include <stdio.h>
+#endif
 #include "resampler.h"
 #include "resampler_buffer.h"
 #include "resampler_registry.h"
@@ -6,6 +8,8 @@
 #define SOXR_DEFAULT_THREADS 1
 #define SOXR_DEFAULT_QUALITY SOXR_VHQ
 #define SOXR_DEFAULT_PHASE SOXR_LINEAR_PHASE
+
+#define BUFFER_UPDATE_TIMEOUT 0
 
 //Get the corresponding soxr_datatype_t for the specified sample size (either short or float).
 soxr_datatype_t soxr_datatype(size_t sample_size) {
@@ -90,6 +94,7 @@ BOOL create_soxr_resampler(BASS_SOX_RESAMPLER* resampler) {
 BOOL ensure_resampler(BASS_SOX_RESAMPLER* resampler) {
 	//If reload is requested then release the current resampler.
 	if (resampler->reload) {
+		resampler->ready = FALSE;
 		release_soxr(resampler);
 		release_resampler_buffers(resampler);
 	}
@@ -97,157 +102,207 @@ BOOL ensure_resampler(BASS_SOX_RESAMPLER* resampler) {
 	//If no resampler exists then create it.
 	if (!resampler->soxr) {
 		if (!create_soxr_resampler(resampler)) {
-#ifdef DEBUG
+#ifdef _DEBUG
 			printf("Failed to create soxr resampler.\n");
 #endif
 			return FALSE;
 		}
+		resampler->ready = TRUE;
 	}
 	return TRUE;
 }
 
-BOOL get_input_channel_data(BASS_SOX_RESAMPLER* resampler, DWORD* length) {
-	*length = BASS_ChannelGetData(
+BOOL read_input_data(BASS_SOX_RESAMPLER* resampler) {
+	resampler->buffer->input_buffer_length = BASS_ChannelGetData(
 		resampler->source_channel,
-		resampler->input_buffer,
-		resampler->input_buffer_length);
-
-	if (*length == BASS_ERR) {
-		resampler->bass_error = BASS_ErrorGetCode();
-#ifdef DEBUG
-		printf("Failed to read from source channel: %d\n", resampler->bass_error);
+		resampler->buffer->input_buffer,
+		resampler->buffer->input_buffer_capacity
+	);
+	if (resampler->buffer->input_buffer_length == BASS_ERR) {
+#ifdef _DEBUG
+		printf("Error reading from source channel.\n");
 #endif
 		return FALSE;
 	}
-
-	if (*length == BASS_ERR_END) {
-#ifdef DEBUG
-		printf("Failed to read from source channel: Ended.\n");
+	else if (resampler->buffer->input_buffer_length == BASS_ERR_END) {
+#ifdef _DEBUG
+		printf("Soucre channel has ended.\n");
 #endif
-		resampler->bass_error = BASS_STREAMPROC_END;
+		resampler->end = TRUE;
 		return FALSE;
 	}
-
 	return TRUE;
+}
+
+BOOL read_output_data(BASS_SOX_RESAMPLER* resampler) {
+	size_t frame_count;
+	if (!resampler->buffer->input_buffer_length) {
+		if (!read_input_data(resampler)) {
+#ifdef _DEBUG
+			printf("Could not read any input data.\n");
+#endif
+			return FALSE;
+		}
 	}
-
-DWORD get_output_channel_data(BASS_SOX_RESAMPLER* resampler, DWORD length) {
-
-	size_t resample_input_read_length;
-	size_t resample_output_written_length;
-	//Calculate how many frames can be read/written.
-	size_t input_frames = length / resampler->input_frame_size;
-	size_t output_frames = resampler->output_buffer_length / resampler->output_frame_size;
-
-	//Invoke soxr to resample the input data and check for errors.
 	resampler->soxr_error = soxr_process(
 		resampler->soxr,
-		resampler->input_buffer,
-		input_frames,
-		&resample_input_read_length,
-		resampler->output_buffer,
-		output_frames,
-		&resample_output_written_length);
-
+		resampler->buffer->input_buffer,
+		resampler->buffer->input_buffer_length / resampler->input_frame_size,
+		NULL,
+		resampler->buffer->output_buffer,
+		resampler->buffer->output_buffer_capacity / resampler->output_frame_size,
+		&frame_count
+	);
 	if (resampler->soxr_error) {
-#ifdef DEBUG
-		printf("Failed to resample data: %s.\n", resampler->soxr_error);
+#ifdef _DEBUG
+		printf("Sox reported an error.\n");
 #endif
 		return FALSE;
 	}
-
-	if (resample_input_read_length < input_frames) {
-#ifdef DEBUG
-		printf("Input was not completed, buffer is too small?\n");
-#endif
-		return FALSE;
-	}
-
-	//Update the output buffer length.
-	resampler->output_length = resample_output_written_length * resampler->output_frame_size;
-
-#ifdef DEBUG
-	printf("Resampled %d frames (%d bytes) into %d frames (%d bytes) at a ratio of 1 to %d.\n",
-		source_channel_read_length,
-		input_frames,
-		resampler->output_length,
-		resample_output_written_length,
-		resampler->ratio);
-#endif
-
+	resampler->buffer->input_buffer_length = 0;
+	resampler->buffer->output_buffer_length = frame_count * resampler->output_frame_size;
 	return TRUE;
+}
+
+BOOL read_playback_data(BASS_SOX_RESAMPLER* resampler) {
+	DWORD remaining = 0;
+	DWORD position = 0;
+	DWORD attempts = 0;
+	BASS_SOX_RESAMPLER_BUFFER* buffer = resampler->buffer;
+	BASS_SOX_PLAYBACK_BUFFER* playback = buffer->playback;
+	DWORD segment = playback->write_segment;
+	if (!buffer->output_buffer_length) {
+		if (!read_output_data(resampler)) {
+			return FALSE;
+		}
 	}
+	remaining = buffer->output_buffer_length;
+	do {
+		for (; segment < playback->buffer->segment_count; segment++) {
+			DWORD length;
+			if (!ring_buffer_segment_length(playback->buffer, segment)) {
+#ifdef _DEBUG
+				printf("Populating ring buffer segment %d.\n", segment);
+#endif
+				if (remaining > playback->buffer->segment_capacity) {
+					length = playback->buffer->segment_capacity;
+				}
+				else {
+					length = remaining;
+				}
+				ring_buffer_write_segment(playback->buffer, segment, offset_buffer(buffer->output_buffer, position), length);
+				if (playback->write_segment == (playback->buffer->segment_count - 1)) {
+					playback->write_segment = 0;
+				}
+				else {
+					playback->write_segment++;
+				}
+				remaining -= length;
+				position += length;
+				if (!remaining) {
+
+					break;
+				}
+			}
+			attempts++;
+			if (attempts == playback->buffer->segment_count) {
+				return FALSE;
+			}
+		}
+		segment = 0;
+	} while (remaining);
+	buffer->output_buffer_length = 0;
+	return TRUE;
+}
+
+BOOL write_playback_data(BASS_SOX_RESAMPLER* resampler, DWORD segment, DWORD length, void* buffer, DWORD* read_length) {
+	BASS_SOX_PLAYBACK_BUFFER* playback = resampler->buffer->playback;
+	DWORD segment_length = ring_buffer_segment_length(playback->buffer, segment);
+	DWORD readable_length = segment_length - playback->read_position;
+	if (readable_length > length) {
+		*read_length = length;
+	}
+	else {
+		*read_length = readable_length;
+	}
+	if (*read_length) {
+		ring_buffer_read_segment_with_offset(playback->buffer, segment, playback->read_position, *read_length, buffer, read_length);
+		playback->read_position += *read_length;
+		if (playback->read_position == segment_length) {
+#ifdef _DEBUG
+			printf("Freeing ring buffer segment %d.\n", segment);
+#endif
+			ring_buffer_free_segment(playback->buffer, segment);
+			if (playback->read_segment == (playback->buffer->segment_count - 1)) {
+				playback->read_segment = 0;
+			}
+			else {
+				playback->read_segment++;
+			}
+			playback->read_position = 0;
+		}
+		return TRUE;
+	}
+	return FALSE;
+}
 
 BOOL populate_resampler(BASS_SOX_RESAMPLER* resampler) {
-	DWORD length;
-
-	//Ensure the resampler (and buffers) are available.
 	if (!ensure_resampler(resampler)) {
-		//Failed to create resampler or allocate buffers.
 		return FALSE;
 	}
-
-	//Read the source data to be resampled, check for read errors.
-	if (!get_input_channel_data(resampler, &length)) {
-		//Failed to read input data for some reason.
-		return FALSE;
-	}
-
-	if (!get_output_channel_data(resampler, length)) {
-		//Failed to write the output data for some reason.
+	if (!read_playback_data(resampler)) {
 		return FALSE;
 	}
 	return TRUE;
 }
 
 DWORD CALLBACK resampler_proc(HSTREAM handle, void *buffer, DWORD length, void *user) {
-	void* actual_buffer = buffer;
-	size_t actual_length = length;
-
+	DWORD remaining = length;
+	DWORD position = 0;
+	DWORD read_length;
+	DWORD attempts = 0;
 	BASS_SOX_RESAMPLER* resampler = (BASS_SOX_RESAMPLER*)user;
-
-	//If there is an output_length then we're still processing some resampled content.
-	if (resampler->output_length) {
-		//Determine the remaining data length.
-		DWORD output_remaining = resampler->output_length - resampler->output_position;
-		if (output_remaining) {
-			//If there is more remaining data than can be written then write what we can and increment the position.
-			if (output_remaining > length) {
-				memcpy(buffer, offset_output_buffer(resampler), length);
-				resampler->output_position += length;
-				return length;
+	BASS_SOX_PLAYBACK_BUFFER* playback;
+	DWORD segment;
+	if (!resampler->background) {
+		populate_resampler(resampler);
+	}
+	if (!resampler->ready) {
+		return 0;
+	}
+	if (resampler->end) {
+		return BASS_ERR_END;
+	}
+	playback = resampler->buffer->playback;
+	segment = playback->read_segment;
+	do {
+		for (; segment < playback->buffer->segment_count; segment++) {
+			if (write_playback_data(resampler, segment, remaining, offset_buffer(buffer, position), &read_length)) {
+				position += read_length;
+				remaining -= read_length;
+				if (!remaining) {
+					break;
+				}
 			}
-			//Looks like we have enough room to complete the current resampled content.
-			else {
-				memcpy(buffer, offset_output_buffer(resampler), output_remaining);
-				//We adjust the length and output buffer to "hide" the data we just wrote.
-				//It would be simpler to just return here but some drivers don't like the 
-				//buffer partially populated so we must get some more data in other to
-				//fill it.
-				actual_length = length - output_remaining;
-				actual_buffer = offset_buffer(resampler, output_remaining, actual_buffer);
+			attempts++;
+			if (attempts == playback->buffer->segment_count) {
+				if (!resampler->background) {
+					populate_resampler(resampler);
+					if (resampler->end) {
+						return BASS_ERR_END;
+					}
+					attempts = 0;
+				}
+				else {
+#ifdef _DEBUG
+					printf("Buffer underrun while reading playback buffer.\n");
+#endif
+					goto buffer_underrun;
+				}
 			}
 		}
-	}
-
-	if (!populate_resampler(resampler)) {
-		//Failed to resample data for some reason.
-		return resampler->bass_error;
-	}
-
-	//Looks like there's too much data so write what we can and set the output position.
-	//This will be picked up by the next invocation of this routine.
-	if (resampler->output_length > actual_length) {
-		memcpy(actual_buffer, resampler->output_buffer, actual_length);
-		resampler->output_position = actual_length;
-		return length;
-	}
-	//There is enough output buffer space available so write everything and make 
-	//sure the output position is empty.
-	//This never happens by the way.
-	else {
-		memcpy(actual_buffer, resampler->output_buffer, resampler->output_length);
-		resampler->output_position = 0;
-		return resampler->output_length;
-	}
+		segment = 0;
+	} while (remaining);
+buffer_underrun:
+	return position;
 }

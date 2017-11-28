@@ -14,7 +14,8 @@ typedef enum {
 	STEEP_FILTER = 2,
 	ALLOW_ALIASING = 3,
 	BUFFER_LENGTH = 4,
-	THREADS = 5
+	THREADS = 5,
+	BACKGROUND = 6
 } BASS_SOX_ATTRIBUTE;
 
 typedef enum {
