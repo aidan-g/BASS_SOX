@@ -37,6 +37,14 @@ typedef enum {
 	MINIMUM = SOXR_MINIMUM_PHASE
 } BASS_SOX_PHASE;
 
+//Initialize.
+__declspec(dllexport)
+BOOL BASSSOXDEF(BASS_SOX_Init)();
+
+//Free.
+__declspec(dllexport)
+BOOL BASSSOXDEF(BASS_SOX_Free)();
+
 //Create a BASS stream containing a resampler payload for the specified frequency (freq).
 __declspec(dllexport)
 HSTREAM BASSSOXDEF(BASS_SOX_StreamCreate)(DWORD freq, DWORD flags, DWORD handle, void *user);

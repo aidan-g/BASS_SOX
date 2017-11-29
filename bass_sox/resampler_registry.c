@@ -1,4 +1,5 @@
 #include "resampler_registry.h"
+#include "resampler_lock.h"
 
 //10 should be enough for anybody.
 #define MAX_RESAMPLERS 10
@@ -72,6 +73,9 @@ BOOL release_resampler(DWORD handle) {
 			return FALSE;
 		}
 		if (!release_resampler_buffers(resamplers[a])) {
+			return FALSE;
+		}
+		if (!resampler_lock_free(resamplers[a])) {
 			return FALSE;
 		}
 		free(resamplers[a]);

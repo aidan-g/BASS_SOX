@@ -10,6 +10,32 @@ BOOL is_float(DWORD flags) {
 	return  (flags & BASS_SAMPLE_FLOAT) == BASS_SAMPLE_FLOAT;
 }
 
+//Initialize.
+BOOL BASSSOXDEF(BASS_SOX_Init)() {
+	//Nothing to do (yet).
+	return TRUE;
+}
+
+//Free.
+BOOL BASSSOXDEF(BASS_SOX_Free)() {
+	DWORD a;
+	DWORD length;
+	BASS_SOX_RESAMPLER** resamplers;
+	if (!get_resamplers(&resamplers, &length)) {
+		return FALSE;
+	}
+	for (a = 0; a < length; a++) {
+		if (!resamplers[a]) {
+			continue;
+		}
+		if (!BASS_SOX_StreamFree(resamplers[a]->source_channel)) {
+			return FALSE;
+		}
+	}
+	end_background_update();
+	return TRUE;
+}
+
 //Create a BASS stream containing a resampler payload for the specified frequency (freq).
 HSTREAM BASSSOXDEF(BASS_SOX_StreamCreate)(DWORD freq, DWORD flags, DWORD handle, void *user) {
 
@@ -47,7 +73,7 @@ HSTREAM BASSSOXDEF(BASS_SOX_StreamCreate)(DWORD freq, DWORD flags, DWORD handle,
 	resampler->input_frame_size = resampler->input_sample_size * resampler->channels;
 	resampler->output_sample_size = is_float(output_channel_info.flags) ? sizeof(float) : sizeof(short);
 	resampler->output_frame_size = resampler->output_sample_size * resampler->channels;
-	
+
 	resampler_lock_create(resampler);
 
 	register_resampler(resampler);

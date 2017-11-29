@@ -40,6 +40,30 @@ namespace ManagedBass.Sox
         const string DllName = "bass_sox";
 
         [DllImport(DllName)]
+        static extern bool BASS_SOX_Init();
+
+        /// <summary>
+        /// Initialize.
+        /// </summary>
+        /// <returns></returns>
+        public static bool Init()
+        {
+            return BASS_SOX_Init();
+        }
+
+        [DllImport(DllName)]
+        static extern bool BASS_SOX_Free();
+
+        /// <summary>
+        /// Free.
+        /// </summary>
+        /// <returns></returns>
+        public static bool Free()
+        {
+            return BASS_SOX_Free();
+        }
+
+        [DllImport(DllName)]
         static extern int BASS_SOX_StreamCreate(int Frequency, BassFlags Flags, int Handle, IntPtr User = default(IntPtr));
 
         /// <summary>

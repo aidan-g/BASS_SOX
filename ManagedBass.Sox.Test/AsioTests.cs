@@ -27,6 +27,11 @@ namespace ManagedBass.Sox.Test
                 Assert.Fail(string.Format("Failed to create source stream: {0}", Enum.GetName(typeof(Errors), Bass.LastError)));
             }
 
+            if (!BassSox.Init())
+            {
+                Assert.Fail("Failed to initialize SOX.");
+            }
+
             var playbackChannel = BassSox.StreamCreate(OUTPUT_RATE, BassFlags.Decode | BassFlags.Float, sourceChannel);
             if (playbackChannel == -1)
             {
@@ -100,6 +105,16 @@ namespace ManagedBass.Sox.Test
             if (!Bass.StreamFree(sourceChannel))
             {
                 Assert.Fail(string.Format("Failed to free the source stream: {0}", Enum.GetName(typeof(Errors), Bass.LastError)));
+            }
+
+            if (!BassSox.Free())
+            {
+                Assert.Fail("Failed to free SOX.");
+            }
+
+            if (!BassAsio.Free())
+            {
+                Assert.Fail(string.Format("Failed to free ASIO: {0}", Enum.GetName(typeof(Errors), Bass.LastError)));
             }
 
             if (!Bass.Free())
