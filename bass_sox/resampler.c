@@ -175,12 +175,17 @@ BOOL read_playback_data(BASS_SOX_RESAMPLER* resampler) {
 	DWORD attempts = 0;
 	BASS_SOX_RESAMPLER_BUFFER* buffer = resampler->buffer;
 	BASS_SOX_PLAYBACK_BUFFER* playback = buffer->playback;
-	DWORD segment = playback->write_segment;
+	DWORD segment;
 	if (!buffer->output_buffer_length) {
 		if (!read_output_data(resampler)) {
 			return FALSE;
 		}
 	}
+	if (!playback) {
+		//Playback buffer is disabled.
+		return TRUE;
+	}
+	segment = playback->write_segment;
 	remaining = buffer->output_buffer_length;
 	do {
 		for (; segment < playback->buffer->segment_count; segment++) {
@@ -265,6 +270,52 @@ BOOL populate_resampler(BASS_SOX_RESAMPLER* resampler) {
 	return success;
 }
 
+DWORD write_playback_data_direct(BASS_SOX_RESAMPLER* resampler, void* buffer, DWORD length) {
+	DWORD remaining = length;
+	DWORD position = 0;
+	do {
+		DWORD output_remaining = resampler->buffer->output_buffer_length - resampler->buffer->output_buffer_position;
+		if (output_remaining) {
+			if (output_remaining > remaining) {
+				output_remaining = remaining;
+			}
+			memcpy(
+				offset_buffer(buffer, position),
+				offset_buffer(resampler->buffer->output_buffer, resampler->buffer->output_buffer_position),
+				output_remaining
+			);
+			remaining -= output_remaining;
+			position += output_remaining;
+			resampler->buffer->output_buffer_position += output_remaining;
+			if (resampler->buffer->output_buffer_position == resampler->buffer->output_buffer_length) {
+				resampler->buffer->output_buffer_length = 0;
+				resampler->buffer->output_buffer_position = 0;
+			}
+		}
+		if (remaining) {
+			if (!resampler->background) {
+				populate_resampler(resampler);
+				if (resampler->end) {
+					if (resampler->send_bass_streamproc_end) {
+						return BASS_STREAMPROC_END;
+					}
+					else {
+						return 0;
+					}
+				}
+			}
+			else {
+#ifdef _DEBUG
+				printf("Buffer underrun while reading output buffer.\n");
+#endif
+				goto buffer_underrun;
+			}
+		}
+	} while (remaining);
+buffer_underrun:
+	return position;
+}
+
 DWORD CALLBACK resampler_proc(HSTREAM handle, void *buffer, DWORD length, void *user) {
 	DWORD remaining = length;
 	DWORD position = 0;
@@ -288,6 +339,9 @@ DWORD CALLBACK resampler_proc(HSTREAM handle, void *buffer, DWORD length, void *
 		}
 	}
 	playback = resampler->buffer->playback;
+	if (!playback) {
+		return write_playback_data_direct(resampler, buffer, length);
+	}
 	segment = playback->read_segment;
 	do {
 		for (; segment < playback->buffer->segment_count; segment++) {

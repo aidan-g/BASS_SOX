@@ -25,6 +25,7 @@ typedef struct {
 	void* output_buffer;
 	size_t output_buffer_length;
 	size_t output_buffer_capacity;
+	size_t output_buffer_position;
 	BASS_SOX_PLAYBACK_BUFFER* playback;
 } BASS_SOX_RESAMPLER_BUFFER;
 
