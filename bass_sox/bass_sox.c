@@ -68,15 +68,12 @@ HSTREAM BASSSOXDEF(BASS_SOX_StreamCreate)(DWORD freq, DWORD flags, DWORD handle,
 	resampler->channels = input_channel_info.chans;
 	resampler->source_channel = handle;
 	resampler->output_channel = output_channel;
-	resampler->ratio = (resampler->output_rate / resampler->input_rate) + 1;
 	resampler->input_sample_size = is_float(input_channel_info.flags) ? sizeof(float) : sizeof(short);
 	resampler->input_frame_size = resampler->input_sample_size * resampler->channels;
 	resampler->output_sample_size = is_float(output_channel_info.flags) ? sizeof(float) : sizeof(short);
 	resampler->output_frame_size = resampler->output_sample_size * resampler->channels;
-	resampler->send_bass_streamproc_end = TRUE;
 
 	resampler_lock_create(resampler);
-
 	register_resampler(resampler);
 
 	return output_channel;
@@ -92,36 +89,38 @@ BOOL BASSSOXDEF(BASS_SOX_StreamBuffer)(DWORD handle) {
 
 BOOL BASSSOXDEF(BASS_SOX_ChannelSetAttribute)(DWORD handle, DWORD attrib, DWORD value) {
 	BASS_SOX_RESAMPLER* resampler;
+	BASS_SOX_RESAMPLER_SETTINGS* settings;
 	if (!get_resampler(handle, &resampler)) {
 		return FALSE;
 	}
+	settings = resampler->settings;
 	switch (attrib) {
 	case QUALITY:
-		resampler->quality = value;
+		settings->quality = value;
 		return TRUE;
 	case PHASE:
-		resampler->phase = value;
+		settings->phase = value;
 		return TRUE;
 	case STEEP_FILTER:
-		resampler->steep_filter = value;
+		settings->steep_filter = value;
 		return TRUE;
 	case ALLOW_ALIASING:
-		resampler->allow_aliasing = value;
+		settings->allow_aliasing = value;
 		return TRUE;
 	case BUFFER_LENGTH:
-		resampler->buffer_length = value;
+		settings->buffer_length = value;
 		return TRUE;
 	case THREADS:
-		resampler->threads = value;
+		settings->threads = value;
 		return TRUE;
 	case BACKGROUND:
-		resampler->background = value;
-		if (resampler->background) {
+		settings->background = value;
+		if (settings->background) {
 			ensure_background_update();
 		}
 		return TRUE;
 	case SEND_BASS_STREAMPROC_END:
-		resampler->send_bass_streamproc_end = value;
+		settings->send_bass_streamproc_end = value;
 		return TRUE;
 	}
 	resampler->reload = TRUE;
@@ -130,33 +129,35 @@ BOOL BASSSOXDEF(BASS_SOX_ChannelSetAttribute)(DWORD handle, DWORD attrib, DWORD 
 
 BOOL BASSSOXDEF(BASS_SOX_ChannelGetAttribute)(DWORD handle, DWORD attrib, DWORD *value) {
 	BASS_SOX_RESAMPLER* resampler;
+	BASS_SOX_RESAMPLER_SETTINGS* settings;
 	if (!get_resampler(handle, &resampler)) {
 		return FALSE;
 	}
+	settings = resampler->settings;
 	switch (attrib) {
 	case QUALITY:
-		*value = resampler->quality;
+		*value = settings->quality;
 		return TRUE;
 	case PHASE:
-		*value = resampler->phase;
+		*value = settings->phase;
 		return TRUE;
 	case STEEP_FILTER:
-		*value = resampler->steep_filter;
+		*value = settings->steep_filter;
 		return TRUE;
 	case ALLOW_ALIASING:
-		*value = resampler->allow_aliasing;
+		*value = settings->allow_aliasing;
 		return TRUE;
 	case BUFFER_LENGTH:
-		*value = resampler->buffer_length;
+		*value = settings->buffer_length;
 		return TRUE;
 	case THREADS:
-		*value = resampler->threads;
+		*value = settings->threads;
 		return TRUE;
 	case BACKGROUND:
-		*value = resampler->background;
+		*value = settings->background;
 		return TRUE;
 	case SEND_BASS_STREAMPROC_END:
-		*value = resampler->send_bass_streamproc_end;
+		*value = settings->send_bass_streamproc_end;
 		return TRUE;
 	}
 	return FALSE;

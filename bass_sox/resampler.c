@@ -26,22 +26,23 @@ soxr_datatype_t soxr_datatype(size_t sample_size) {
 soxr_quality_spec_t get_quality_spec(BASS_SOX_RESAMPLER* resampler) {
 	unsigned long recipe = 0;
 	unsigned long flags = 0;
-	if (resampler->quality) {
-		recipe |= resampler->quality;
+	BASS_SOX_RESAMPLER_SETTINGS* settings = resampler->settings;
+	if (settings->quality) {
+		recipe |= settings->quality;
 	}
 	else {
 		recipe |= SOXR_DEFAULT_QUALITY;
 	}
-	if (resampler->phase) {
-		recipe |= resampler->phase;
+	if (settings->phase) {
+		recipe |= settings->phase;
 	}
 	else {
 		recipe |= SOXR_DEFAULT_PHASE;
 	}
-	if (resampler->steep_filter) {
+	if (settings->steep_filter) {
 		recipe |= SOXR_STEEP_FILTER;
 	}
-	if (resampler->allow_aliasing) {
+	if (settings->allow_aliasing) {
 		//No longer implemented.
 	}
 	return soxr_quality_spec(recipe, flags);
@@ -49,8 +50,9 @@ soxr_quality_spec_t get_quality_spec(BASS_SOX_RESAMPLER* resampler) {
 
 soxr_runtime_spec_t get_runtime_spec(BASS_SOX_RESAMPLER* resampler) {
 	unsigned int threads = 0;
-	if (resampler->threads) {
-		threads = resampler->threads;
+	BASS_SOX_RESAMPLER_SETTINGS* settings = resampler->settings;
+	if (settings->threads) {
+		threads = settings->threads;
 	}
 	else {
 		threads = SOXR_DEFAULT_THREADS;
@@ -273,6 +275,7 @@ BOOL populate_resampler(BASS_SOX_RESAMPLER* resampler) {
 DWORD write_playback_data_direct(BASS_SOX_RESAMPLER* resampler, void* buffer, DWORD length) {
 	DWORD remaining = length;
 	DWORD position = 0;
+	BASS_SOX_RESAMPLER_SETTINGS* settings = resampler->settings;
 	do {
 		DWORD output_remaining = resampler->buffer->output_buffer_length - resampler->buffer->output_buffer_position;
 		if (output_remaining) {
@@ -293,10 +296,10 @@ DWORD write_playback_data_direct(BASS_SOX_RESAMPLER* resampler, void* buffer, DW
 			}
 		}
 		if (remaining) {
-			if (!resampler->background) {
+			if (!settings->background) {
 				populate_resampler(resampler);
 				if (resampler->end) {
-					if (resampler->send_bass_streamproc_end) {
+					if (settings->send_bass_streamproc_end) {
 						return BASS_STREAMPROC_END;
 					}
 					else {
@@ -322,16 +325,17 @@ DWORD CALLBACK resampler_proc(HSTREAM handle, void *buffer, DWORD length, void *
 	DWORD read_length;
 	DWORD attempts = 0;
 	BASS_SOX_RESAMPLER* resampler = (BASS_SOX_RESAMPLER*)user;
+	BASS_SOX_RESAMPLER_SETTINGS* settings = resampler->settings;
 	BASS_SOX_PLAYBACK_BUFFER* playback;
 	DWORD segment;
-	if (!resampler->background) {
+	if (!settings->background) {
 		populate_resampler(resampler);
 	}
 	if (!resampler->ready) {
 		return 0;
 	}
 	if (resampler->end) {
-		if (resampler->send_bass_streamproc_end) {
+		if (settings->send_bass_streamproc_end) {
 			return BASS_STREAMPROC_END;
 		}
 		else {
@@ -354,10 +358,10 @@ DWORD CALLBACK resampler_proc(HSTREAM handle, void *buffer, DWORD length, void *
 			}
 			attempts++;
 			if (attempts == playback->buffer->segment_count) {
-				if (!resampler->background) {
+				if (!settings->background) {
 					populate_resampler(resampler);
 					if (resampler->end) {
-						if (resampler->send_bass_streamproc_end) {
+						if (settings->send_bass_streamproc_end) {
 							return BASS_STREAMPROC_END;
 						}
 						else {

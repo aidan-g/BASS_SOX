@@ -30,19 +30,6 @@ typedef struct {
 } BASS_SOX_RESAMPLER_BUFFER;
 
 typedef struct {
-	int input_rate;
-	int output_rate;
-	int channels;
-	HSTREAM source_channel;
-	HSTREAM output_channel;
-	BOOL end;
-	DWORD bass_error;
-	size_t ratio;
-	size_t input_sample_size;
-	size_t input_frame_size;
-	size_t output_sample_size;
-	size_t output_frame_size;
-	BASS_SOX_RESAMPLER_BUFFER* buffer;
 	unsigned long quality;
 	unsigned long phase;
 	BOOL steep_filter;
@@ -51,6 +38,21 @@ typedef struct {
 	unsigned int threads;
 	BOOL background;
 	BOOL send_bass_streamproc_end;
+} BASS_SOX_RESAMPLER_SETTINGS;
+
+typedef struct {
+	int input_rate;
+	int output_rate;
+	int channels;
+	HSTREAM source_channel;
+	HSTREAM output_channel;
+	BOOL end;
+	size_t input_sample_size;
+	size_t input_frame_size;
+	size_t output_sample_size;
+	size_t output_frame_size;
+	BASS_SOX_RESAMPLER_BUFFER* buffer;
+	BASS_SOX_RESAMPLER_SETTINGS* settings;
 	soxr_t soxr;
 	soxr_error_t soxr_error;
 	BOOL reload;

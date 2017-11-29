@@ -4,8 +4,9 @@
 #define DEFAULT_BUFFER_LENGTH 1
 
 size_t get_buffer_length(BASS_SOX_RESAMPLER* resampler) {
-	if (resampler->buffer_length) {
-		return resampler->buffer_length;
+	BASS_SOX_RESAMPLER_SETTINGS* settings = resampler->settings;
+	if (settings->buffer_length) {
+		return settings->buffer_length;
 	}
 	else {
 		return DEFAULT_BUFFER_LENGTH;

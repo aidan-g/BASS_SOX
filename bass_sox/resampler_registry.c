@@ -8,10 +8,8 @@ BASS_SOX_RESAMPLER* resamplers[MAX_RESAMPLERS];
 
 //Create a new resampler.
 BASS_SOX_RESAMPLER* create_resampler() {
-	BASS_SOX_RESAMPLER* resampler = 0;
-	if (!(resampler = calloc(sizeof(BASS_SOX_RESAMPLER), 1))) {
-		return NULL;
-	}
+	BASS_SOX_RESAMPLER* resampler = calloc(sizeof(BASS_SOX_RESAMPLER), 1);
+	resampler->settings = calloc(sizeof(BASS_SOX_RESAMPLER_SETTINGS), 1);
 	return resampler;
 }
 

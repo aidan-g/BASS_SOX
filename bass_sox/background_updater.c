@@ -23,7 +23,7 @@ DWORD WINAPI background_update(void* args) {
 			if (!resamplers[a]) {
 				continue;
 			}
-			if (!resamplers[a]->background) {
+			if (!resamplers[a]->settings->background) {
 				continue;
 			}
 			populate_resampler(resamplers[a]);
