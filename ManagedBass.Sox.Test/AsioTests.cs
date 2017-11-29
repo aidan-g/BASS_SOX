@@ -71,6 +71,8 @@ namespace ManagedBass.Sox.Test
             var channelLength = Bass.ChannelGetLength(sourceChannel);
             var channelLengthSeconds = Bass.ChannelBytes2Seconds(sourceChannel, channelLength);
 
+            Bass.ChannelSetPosition(sourceChannel, Bass.ChannelSeconds2Bytes(sourceChannel, channelLengthSeconds - 10));
+
             do
             {
                 if (Bass.ChannelIsActive(sourceChannel) == PlaybackState.Stopped)

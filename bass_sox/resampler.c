@@ -4,6 +4,7 @@
 #include "resampler.h"
 #include "resampler_buffer.h"
 #include "resampler_registry.h"
+#include "resampler_lock.h"
 
 #define SOXR_DEFAULT_THREADS 1
 #define SOXR_DEFAULT_QUALITY SOXR_VHQ
@@ -247,13 +248,17 @@ BOOL write_playback_data(BASS_SOX_RESAMPLER* resampler, DWORD segment, DWORD len
 }
 
 BOOL populate_resampler(BASS_SOX_RESAMPLER* resampler) {
-	if (!ensure_resampler(resampler)) {
+	DWORD success = FALSE;
+	if (!resampler_lock_enter(resampler, IGNORE)) {
 		return FALSE;
 	}
-	if (!read_playback_data(resampler)) {
-		return FALSE;
+	if (ensure_resampler(resampler)) {
+		if (read_playback_data(resampler)) {
+			success = TRUE;
+		}
 	}
-	return TRUE;
+	resampler_lock_exit(resampler);
+	return success;
 }
 
 DWORD CALLBACK resampler_proc(HSTREAM handle, void *buffer, DWORD length, void *user) {

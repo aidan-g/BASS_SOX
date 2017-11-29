@@ -38,10 +38,10 @@ int main()
 	BASS_SOX_ChannelSetAttribute(playback_channel, THREADS, 2);
 	BASS_SOX_ChannelSetAttribute(playback_channel, BACKGROUND, TRUE);
 
-	//if (!BASS_SOX_StreamBuffer(playback_channel)) {
-	//	printf("Failed to buffer playback stream: %d\n", BASS_ErrorGetCode());
-	//	return 1;
-	//}
+	if (!BASS_SOX_StreamBuffer(playback_channel)) {
+		printf("Failed to buffer playback stream: %d\n", BASS_ErrorGetCode());
+		return 1;
+	}
 
 	//Play the re sampler stream.
 	if (!BASS_ChannelPlay(playback_channel, FALSE)) {

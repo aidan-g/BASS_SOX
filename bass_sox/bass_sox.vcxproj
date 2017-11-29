@@ -151,6 +151,7 @@
     <ClCompile Include="bass_sox.c" />
     <ClCompile Include="resampler.c" />
     <ClCompile Include="resampler_buffer.c" />
+    <ClCompile Include="resampler_lock.c" />
     <ClCompile Include="resampler_registry.c" />
     <ClCompile Include="ring_buffer.c" />
   </ItemGroup>
@@ -161,6 +162,7 @@
     <ClInclude Include="bass_sox.h" />
     <ClInclude Include="resampler.h" />
     <ClInclude Include="resampler_buffer.h" />
+    <ClInclude Include="resampler_lock.h" />
     <ClInclude Include="resampler_registry.h" />
     <ClInclude Include="ring_buffer.h" />
     <ClInclude Include="soxr\soxr.h" />

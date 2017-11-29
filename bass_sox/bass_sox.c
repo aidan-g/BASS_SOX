@@ -3,6 +3,7 @@
 #include "resampler_buffer.h"
 #include "resampler_registry.h"
 #include "background_updater.h"
+#include "resampler_lock.h"
 
 //Determine whether the specified flags imply BASS_SAMPLE_FLOAT.
 BOOL is_float(DWORD flags) {
@@ -46,6 +47,8 @@ HSTREAM BASSSOXDEF(BASS_SOX_StreamCreate)(DWORD freq, DWORD flags, DWORD handle,
 	resampler->input_frame_size = resampler->input_sample_size * resampler->channels;
 	resampler->output_sample_size = is_float(output_channel_info.flags) ? sizeof(float) : sizeof(short);
 	resampler->output_frame_size = resampler->output_sample_size * resampler->channels;
+	
+	resampler_lock_create(resampler);
 
 	register_resampler(resampler);
 
@@ -55,9 +58,6 @@ HSTREAM BASSSOXDEF(BASS_SOX_StreamCreate)(DWORD freq, DWORD flags, DWORD handle,
 BOOL BASSSOXDEF(BASS_SOX_StreamBuffer)(DWORD handle) {
 	BASS_SOX_RESAMPLER* resampler;
 	if (!get_resampler(handle, &resampler)) {
-		return FALSE;
-	}
-	if (resampler->background) {
 		return FALSE;
 	}
 	return populate_resampler(resampler);
