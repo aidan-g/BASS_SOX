@@ -119,18 +119,21 @@ BOOL read_input_data(BASS_SOX_RESAMPLER* resampler) {
 		resampler->buffer->input_buffer,
 		resampler->buffer->input_buffer_capacity
 	);
-	if (resampler->buffer->input_buffer_length == BASS_ERR) {
+	if (!resampler->buffer->input_buffer_length || resampler->buffer->input_buffer_length == BASS_ERR_END) {
+#ifdef _DEBUG
+		printf("Source channel has ended.\n");
+#endif
+		resampler->end = TRUE;
+		return FALSE;
+	}
+	else if (resampler->buffer->input_buffer_length == BASS_ERR) {
 #ifdef _DEBUG
 		printf("Error reading from source channel.\n");
 #endif
 		return FALSE;
 	}
-	else if (resampler->buffer->input_buffer_length == BASS_ERR_END) {
-#ifdef _DEBUG
-		printf("Soucre channel has ended.\n");
-#endif
-		resampler->end = TRUE;
-		return FALSE;
+	if (resampler->end) {
+		resampler->end = FALSE;
 	}
 	return TRUE;
 }
