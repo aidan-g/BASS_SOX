@@ -40,13 +40,16 @@ namespace ManagedBass.Sox.Test
 
             BassSox.ChannelSetAttribute(playbackChannel, SoxChannelAttribute.BufferLength, 5);
             BassSox.ChannelSetAttribute(playbackChannel, SoxChannelAttribute.Background, true);
+            BassSox.ChannelSetAttribute(playbackChannel, SoxChannelAttribute.SendBassStreamProcEnd, false);
 
             if (!BassAsio.Init(0, AsioInitFlags.Thread))
             {
                 Assert.Fail(string.Format("Failed to initialize ASIO: {0}", Enum.GetName(typeof(Errors), BassAsio.LastError)));
             }
 
-            if (!BassAsio.ChannelEnable(false, 0, this.GetAsioProcedure(playbackChannel)))
+            this.AsioProcedure = this.GetAsioProcedure(playbackChannel);
+
+            if (!BassAsio.ChannelEnable(false, 0, this.AsioProcedure))
             {
                 Assert.Fail(string.Format("Failed to enable ASIO: {0}", Enum.GetName(typeof(Errors), BassAsio.LastError)));
             }
@@ -123,11 +126,18 @@ namespace ManagedBass.Sox.Test
             }
         }
 
+        private AsioProcedure AsioProcedure { get; set; }
+
         private AsioProcedure GetAsioProcedure(int playbackChannel)
         {
             return new AsioProcedure((Input, Channel, Buffer, Length, User) =>
             {
-                return Bass.ChannelGetData(playbackChannel, Buffer, Length);
+                var result = Bass.ChannelGetData(playbackChannel, Buffer, Length);
+                if (result <= 0)
+                {
+                    result = 0;
+                }
+                return result;
             });
         }
     }

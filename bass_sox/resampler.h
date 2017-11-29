@@ -7,7 +7,6 @@
 #include "ring_buffer.h"
 
 #define BASS_ERR -1
-#define BASS_ERR_END 0xFFFFFFFF
 
 #define MAX_BUFFER_LENGTH 10
 
@@ -50,6 +49,7 @@ typedef struct {
 	size_t buffer_length;
 	unsigned int threads;
 	BOOL background;
+	BOOL send_bass_streamproc_end;
 	soxr_t soxr;
 	soxr_error_t soxr_error;
 	BOOL reload;

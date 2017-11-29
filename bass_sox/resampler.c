@@ -119,7 +119,7 @@ BOOL read_input_data(BASS_SOX_RESAMPLER* resampler) {
 		resampler->buffer->input_buffer,
 		resampler->buffer->input_buffer_capacity
 	);
-	if (!resampler->buffer->input_buffer_length || resampler->buffer->input_buffer_length == BASS_ERR_END) {
+	if (!resampler->buffer->input_buffer_length || resampler->buffer->input_buffer_length == BASS_STREAMPROC_END) {
 #ifdef _DEBUG
 		printf("Source channel has ended.\n");
 #endif
@@ -130,6 +130,7 @@ BOOL read_input_data(BASS_SOX_RESAMPLER* resampler) {
 #ifdef _DEBUG
 		printf("Error reading from source channel.\n");
 #endif
+		resampler->end = TRUE;
 		return FALSE;
 	}
 	if (resampler->end) {
@@ -279,7 +280,12 @@ DWORD CALLBACK resampler_proc(HSTREAM handle, void *buffer, DWORD length, void *
 		return 0;
 	}
 	if (resampler->end) {
-		return BASS_ERR_END;
+		if (resampler->send_bass_streamproc_end) {
+			return BASS_STREAMPROC_END;
+		}
+		else {
+			return 0;
+		}
 	}
 	playback = resampler->buffer->playback;
 	segment = playback->read_segment;
@@ -297,7 +303,12 @@ DWORD CALLBACK resampler_proc(HSTREAM handle, void *buffer, DWORD length, void *
 				if (!resampler->background) {
 					populate_resampler(resampler);
 					if (resampler->end) {
-						return BASS_ERR_END;
+						if (resampler->send_bass_streamproc_end) {
+							return BASS_STREAMPROC_END;
+						}
+						else {
+							return 0;
+						}
 					}
 					attempts = 0;
 				}

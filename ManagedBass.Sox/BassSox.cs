@@ -5,13 +5,40 @@ namespace ManagedBass.Sox
 {
     public enum SoxChannelAttribute
     {
+        /// <summary>
+        /// <see cref="SoxChannelQuality"/>
+        /// </summary>
         Quality = 0,
+        /// <summary>
+        /// <see cref="SoxChannelPhase"/>
+        /// </summary>
         Phase = 1,
+        /// <summary>
+        /// <see cref="bool"/>
+        /// </summary>
         SteepFilter = 2,
+        /// <summary>
+        /// <see cref="bool"/>
+        /// </summary>
         AllowAliasing = 3,
+        /// <summary>
+        /// <see cref="int"/>
+        /// </summary>
         BufferLength = 4,
+        /// <summary>
+        /// <see cref="int"/>
+        /// </summary>
         Threads = 5,
-        Background = 6
+        /// <summary>
+        /// <see cref="bool"/>
+        /// </summary>
+        Background = 6,
+        /// <summary>
+        /// Whether to send BASS_STREAMPROC_END at the end of a stream.
+        /// You should disable this if using ASIO.
+        /// <see cref="bool"/>
+        /// </summary>
+        SendBassStreamProcEnd = 7
     }
 
     public enum SoxChannelQuality

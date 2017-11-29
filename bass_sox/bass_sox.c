@@ -73,6 +73,7 @@ HSTREAM BASSSOXDEF(BASS_SOX_StreamCreate)(DWORD freq, DWORD flags, DWORD handle,
 	resampler->input_frame_size = resampler->input_sample_size * resampler->channels;
 	resampler->output_sample_size = is_float(output_channel_info.flags) ? sizeof(float) : sizeof(short);
 	resampler->output_frame_size = resampler->output_sample_size * resampler->channels;
+	resampler->send_bass_streamproc_end = TRUE;
 
 	resampler_lock_create(resampler);
 
@@ -119,6 +120,9 @@ BOOL BASSSOXDEF(BASS_SOX_ChannelSetAttribute)(DWORD handle, DWORD attrib, DWORD 
 			ensure_background_update();
 		}
 		return TRUE;
+	case SEND_BASS_STREAMPROC_END:
+		resampler->send_bass_streamproc_end = value;
+		return TRUE;
 	}
 	resampler->reload = TRUE;
 	return FALSE;
@@ -150,6 +154,9 @@ BOOL BASSSOXDEF(BASS_SOX_ChannelGetAttribute)(DWORD handle, DWORD attrib, DWORD 
 		return TRUE;
 	case BACKGROUND:
 		*value = resampler->background;
+		return TRUE;
+	case SEND_BASS_STREAMPROC_END:
+		*value = resampler->send_bass_streamproc_end;
 		return TRUE;
 	}
 	return FALSE;
