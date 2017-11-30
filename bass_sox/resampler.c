@@ -1,96 +1,34 @@
 #ifdef _DEBUG
 #include <stdio.h>
 #endif
+
 #include "resampler.h"
 #include "resampler_buffer.h"
 #include "resampler_registry.h"
 #include "resampler_lock.h"
-
-#define SOXR_DEFAULT_THREADS 1
-#define SOXR_DEFAULT_QUALITY SOXR_VHQ
-#define SOXR_DEFAULT_PHASE SOXR_LINEAR_PHASE
+#include "resampler_settings.h"
+#include "resampler_soxr.h"
 
 #define BUFFER_UPDATE_TIMEOUT 0
 
-//Get the corresponding soxr_datatype_t for the specified sample size (either short or float).
-soxr_datatype_t soxr_datatype(size_t sample_size) {
-	if (sample_size == sizeof(short)) {
-		return SOXR_INT16_I;
-	}
-	if (sample_size == sizeof(float)) {
-		return SOXR_FLOAT32_I;
-	}
-	return 0;
+BASS_SOX_RESAMPLER* resampler_create() {
+	return calloc(sizeof(BASS_SOX_RESAMPLER), 1);
 }
 
-soxr_quality_spec_t get_quality_spec(BASS_SOX_RESAMPLER* resampler) {
-	unsigned long recipe = 0;
-	unsigned long flags = 0;
-	BASS_SOX_RESAMPLER_SETTINGS* settings = resampler->settings;
-	if (settings->quality) {
-		recipe |= settings->quality;
-	}
-	else {
-		recipe |= SOXR_DEFAULT_QUALITY;
-	}
-	if (settings->phase) {
-		recipe |= settings->phase;
-	}
-	else {
-		recipe |= SOXR_DEFAULT_PHASE;
-	}
-	if (settings->steep_filter) {
-		recipe |= SOXR_STEEP_FILTER;
-	}
-	if (settings->allow_aliasing) {
-		//No longer implemented.
-	}
-	return soxr_quality_spec(recipe, flags);
-}
-
-soxr_runtime_spec_t get_runtime_spec(BASS_SOX_RESAMPLER* resampler) {
-	unsigned int threads = 0;
-	BASS_SOX_RESAMPLER_SETTINGS* settings = resampler->settings;
-	if (settings->threads) {
-		threads = settings->threads;
-	}
-	else {
-		threads = SOXR_DEFAULT_THREADS;
-	}
-	return soxr_runtime_spec(threads);
-}
-
-//Construct a soxr_t for the specified resampler configuration.
-BOOL create_soxr_resampler(BASS_SOX_RESAMPLER* resampler) {
-
-	soxr_io_spec_t io_spec = soxr_io_spec(
-		soxr_datatype(resampler->input_sample_size),
-		soxr_datatype(resampler->output_sample_size));
-	soxr_quality_spec_t quality_spec = get_quality_spec(resampler);
-	soxr_runtime_spec_t runtime_spec = get_runtime_spec(resampler);
-
-	if (resampler->soxr) {
-		release_soxr(resampler);
-	}
-
-	resampler->soxr = soxr_create(
-		resampler->input_rate,
-		resampler->output_rate,
-		resampler->channels,
-		&resampler->soxr_error,
-		&io_spec,
-		&quality_spec,
-		&runtime_spec);
-
-	if (!resampler->soxr) {
+BOOL resampler_free(BASS_SOX_RESAMPLER* resampler) {
+	if (!resampler_soxr_free(resampler)) {
 		return FALSE;
 	}
-
-	if (!alloc_resampler_buffers(resampler)) {
-		release_soxr(resampler);
+	if (!resampler_buffer_free(resampler)) {
 		return FALSE;
 	}
-
+	if (!resampler_settings_free(resampler)) {
+		return FALSE;
+	}
+	if (!resampler_lock_free(resampler)) {
+		return FALSE;
+	}
+	free(resampler);
 	return TRUE;
 }
 
@@ -98,16 +36,16 @@ BOOL ensure_resampler(BASS_SOX_RESAMPLER* resampler) {
 	//If reload is requested then release the current resampler.
 	if (resampler->reload) {
 		resampler->ready = FALSE;
-		release_soxr(resampler);
-		release_resampler_buffers(resampler);
+		resampler_soxr_free(resampler);
+		resampler_buffer_free(resampler);
 	}
 
 	//If no resampler exists then create it.
 	if (!resampler->soxr) {
-		if (!create_soxr_resampler(resampler)) {
-#ifdef _DEBUG
-			printf("Failed to create soxr resampler.\n");
-#endif
+		if (!resampler_soxr_create(resampler)) {
+			return FALSE;
+		}
+		if (!resampler_buffer_create(resampler)) {
 			return FALSE;
 		}
 		resampler->ready = TRUE;
@@ -116,19 +54,20 @@ BOOL ensure_resampler(BASS_SOX_RESAMPLER* resampler) {
 }
 
 BOOL read_input_data(BASS_SOX_RESAMPLER* resampler) {
-	resampler->buffer->input_buffer_length = BASS_ChannelGetData(
+	BASS_SOX_RESAMPLER_BUFFER* buffer = resampler->buffer;
+	buffer->input_buffer_length = BASS_ChannelGetData(
 		resampler->source_channel,
-		resampler->buffer->input_buffer,
-		resampler->buffer->input_buffer_capacity
+		buffer->input_buffer,
+		buffer->input_buffer_capacity
 	);
-	if (!resampler->buffer->input_buffer_length || resampler->buffer->input_buffer_length == BASS_STREAMPROC_END) {
+	if (!buffer->input_buffer_length || buffer->input_buffer_length == BASS_STREAMPROC_END) {
 #ifdef _DEBUG
 		printf("Source channel has ended.\n");
 #endif
 		resampler->end = TRUE;
 		return FALSE;
 	}
-	else if (resampler->buffer->input_buffer_length == BASS_ERR) {
+	else if (buffer->input_buffer_length == BASS_ERR) {
 #ifdef _DEBUG
 		printf("Error reading from source channel.\n");
 #endif
@@ -143,7 +82,8 @@ BOOL read_input_data(BASS_SOX_RESAMPLER* resampler) {
 
 BOOL read_output_data(BASS_SOX_RESAMPLER* resampler) {
 	size_t frame_count;
-	if (!resampler->buffer->input_buffer_length) {
+	BASS_SOX_RESAMPLER_BUFFER* buffer = resampler->buffer;
+	if (!buffer->input_buffer_length) {
 		if (!read_input_data(resampler)) {
 #ifdef _DEBUG
 			printf("Could not read any input data.\n");
@@ -153,11 +93,11 @@ BOOL read_output_data(BASS_SOX_RESAMPLER* resampler) {
 	}
 	resampler->soxr_error = soxr_process(
 		resampler->soxr,
-		resampler->buffer->input_buffer,
-		resampler->buffer->input_buffer_length / resampler->input_frame_size,
+		buffer->input_buffer,
+		buffer->input_buffer_length / resampler->input_frame_size,
 		NULL,
-		resampler->buffer->output_buffer,
-		resampler->buffer->output_buffer_capacity / resampler->output_frame_size,
+		buffer->output_buffer,
+		buffer->output_buffer_capacity / resampler->output_frame_size,
 		&frame_count
 	);
 	if (resampler->soxr_error) {
@@ -166,8 +106,8 @@ BOOL read_output_data(BASS_SOX_RESAMPLER* resampler) {
 #endif
 		return FALSE;
 	}
-	resampler->buffer->input_buffer_length = 0;
-	resampler->buffer->output_buffer_length = frame_count * resampler->output_frame_size;
+	buffer->input_buffer_length = 0;
+	buffer->output_buffer_length = frame_count * resampler->output_frame_size;
 	return TRUE;
 }
 
@@ -258,7 +198,7 @@ BOOL write_playback_data(BASS_SOX_RESAMPLER* resampler, DWORD segment, DWORD len
 	return FALSE;
 }
 
-BOOL populate_resampler(BASS_SOX_RESAMPLER* resampler) {
+BOOL resampler_populate(BASS_SOX_RESAMPLER* resampler) {
 	DWORD success = FALSE;
 	if (!resampler_lock_enter(resampler, IGNORE)) {
 		return FALSE;
@@ -297,7 +237,7 @@ DWORD write_playback_data_direct(BASS_SOX_RESAMPLER* resampler, void* buffer, DW
 		}
 		if (remaining) {
 			if (!settings->background) {
-				populate_resampler(resampler);
+				resampler_populate(resampler);
 				if (resampler->end) {
 					if (settings->send_bass_streamproc_end) {
 						return BASS_STREAMPROC_END;
@@ -329,7 +269,7 @@ DWORD CALLBACK resampler_proc(HSTREAM handle, void *buffer, DWORD length, void *
 	BASS_SOX_PLAYBACK_BUFFER* playback;
 	DWORD segment;
 	if (!settings->background) {
-		populate_resampler(resampler);
+		resampler_populate(resampler);
 	}
 	if (!resampler->ready) {
 		return 0;
@@ -359,7 +299,7 @@ DWORD CALLBACK resampler_proc(HSTREAM handle, void *buffer, DWORD length, void *
 			attempts++;
 			if (attempts == playback->buffer->segment_count) {
 				if (!settings->background) {
-					populate_resampler(resampler);
+					resampler_populate(resampler);
 					if (resampler->end) {
 						if (settings->send_bass_streamproc_end) {
 							return BASS_STREAMPROC_END;

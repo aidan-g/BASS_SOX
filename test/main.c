@@ -58,7 +58,7 @@ int main()
 		double channel_position_seconds;
 
 		//Check the channel is active otherwise break.
-		DWORD channel_active = BASS_ChannelIsActive(source_channel);
+		DWORD channel_active = BASS_ChannelIsActive(playback_channel);
 		if (channel_active == BASS_ACTIVE_STOPPED) {
 			break;
 		}

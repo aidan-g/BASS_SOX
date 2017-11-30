@@ -13,12 +13,12 @@ DWORD WINAPI background_update(void* args) {
 	DWORD a;
 	DWORD length;
 	BASS_SOX_RESAMPLER** resamplers;
-	if (!get_resamplers(&resamplers, &length)) {
-		return FALSE;
-	}
 	background_update_active = TRUE;
 	while (!background_update_shutdown) {
 		BOOL success = FALSE;
+		if (!resampler_registry_get_all(&resamplers, &length)) {
+			return FALSE;
+		}
 		for (a = 0; a < length; a++) {
 			if (!resamplers[a]) {
 				continue;
@@ -26,7 +26,7 @@ DWORD WINAPI background_update(void* args) {
 			if (!resamplers[a]->settings->background) {
 				continue;
 			}
-			populate_resampler(resamplers[a]);
+			resampler_populate(resamplers[a]);
 			success = TRUE;
 		}
 		if (!success) {
@@ -38,7 +38,7 @@ DWORD WINAPI background_update(void* args) {
 	return TRUE;
 }
 
-BOOL begin_background_update() {
+BOOL background_update_begin() {
 	if (background_update_active) {
 		return TRUE;
 	}
@@ -50,7 +50,7 @@ BOOL begin_background_update() {
 	return TRUE;
 }
 
-BOOL end_background_update() {
+BOOL background_update_end() {
 	DWORD result;
 	if (!background_update_handle) {
 		return TRUE;
@@ -65,11 +65,4 @@ BOOL end_background_update() {
 		return TRUE;
 	}
 	return FALSE;
-}
-
-BOOL ensure_background_update() {
-	if (background_update_handle && !background_update_active) {
-		end_background_update();
-	}
-	return begin_background_update();
 }

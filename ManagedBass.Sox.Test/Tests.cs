@@ -102,6 +102,11 @@ namespace ManagedBass.Sox.Test
                 Assert.Fail(string.Format("Failed to free the source stream: {0}", Enum.GetName(typeof(Errors), Bass.LastError)));
             }
 
+            if (!BassSox.Free())
+            {
+                Assert.Fail("Failed to free SOX.");
+            }
+
             if (!Bass.Free())
             {
                 Assert.Fail(string.Format("Failed to free BASS: {0}", Enum.GetName(typeof(Errors), Bass.LastError)));

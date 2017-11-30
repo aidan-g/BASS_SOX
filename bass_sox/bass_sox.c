@@ -4,6 +4,7 @@
 #include "resampler_registry.h"
 #include "background_updater.h"
 #include "resampler_lock.h"
+#include "resampler_settings.h"
 
 //Determine whether the specified flags imply BASS_SAMPLE_FLOAT.
 BOOL is_float(DWORD flags) {
@@ -21,7 +22,8 @@ BOOL BASSSOXDEF(BASS_SOX_Free)() {
 	DWORD a;
 	DWORD length;
 	BASS_SOX_RESAMPLER** resamplers;
-	if (!get_resamplers(&resamplers, &length)) {
+	background_update_end();
+	if (!resampler_registry_get_all(&resamplers, &length)) {
 		return FALSE;
 	}
 	for (a = 0; a < length; a++) {
@@ -32,7 +34,6 @@ BOOL BASSSOXDEF(BASS_SOX_Free)() {
 			return FALSE;
 		}
 	}
-	end_background_update();
 	return TRUE;
 }
 
@@ -48,12 +49,12 @@ HSTREAM BASSSOXDEF(BASS_SOX_StreamCreate)(DWORD freq, DWORD flags, DWORD handle,
 		return BASS_ERROR_UNKNOWN;
 	}
 
-	//if (input_channel_info.freq == freq) {
-	//	//Input and output frequency are the same, nothing to do.
-	//	return handle;
-	//}
+	if (input_channel_info.freq == freq) {
+		//Input and output frequency are the same, nothing to do.
+		return handle;
+	}
 
-	resampler = create_resampler();
+	resampler = resampler_create();
 	output_channel = BASS_StreamCreate(freq, input_channel_info.chans, flags, &resampler_proc, resampler);
 	if (output_channel == -1) {
 		return BASS_ERROR_UNKNOWN;
@@ -73,24 +74,25 @@ HSTREAM BASSSOXDEF(BASS_SOX_StreamCreate)(DWORD freq, DWORD flags, DWORD handle,
 	resampler->output_sample_size = is_float(output_channel_info.flags) ? sizeof(float) : sizeof(short);
 	resampler->output_frame_size = resampler->output_sample_size * resampler->channels;
 
+	resampler_settings_create(resampler);
 	resampler_lock_create(resampler);
-	register_resampler(resampler);
+	resampler_registry_add(resampler);
 
 	return output_channel;
 }
 
 BOOL BASSSOXDEF(BASS_SOX_StreamBuffer)(DWORD handle) {
 	BASS_SOX_RESAMPLER* resampler;
-	if (!get_resampler(handle, &resampler)) {
+	if (!resampler_registry_get(handle, &resampler)) {
 		return FALSE;
 	}
-	return populate_resampler(resampler);
+	return resampler_populate(resampler);
 }
 
 BOOL BASSSOXDEF(BASS_SOX_ChannelSetAttribute)(DWORD handle, DWORD attrib, DWORD value) {
 	BASS_SOX_RESAMPLER* resampler;
 	BASS_SOX_RESAMPLER_SETTINGS* settings;
-	if (!get_resampler(handle, &resampler)) {
+	if (!resampler_registry_get(handle, &resampler)) {
 		return FALSE;
 	}
 	settings = resampler->settings;
@@ -116,7 +118,7 @@ BOOL BASSSOXDEF(BASS_SOX_ChannelSetAttribute)(DWORD handle, DWORD attrib, DWORD 
 	case BACKGROUND:
 		settings->background = value;
 		if (settings->background) {
-			ensure_background_update();
+			background_update_begin();
 		}
 		return TRUE;
 	case SEND_BASS_STREAMPROC_END:
@@ -130,7 +132,7 @@ BOOL BASSSOXDEF(BASS_SOX_ChannelSetAttribute)(DWORD handle, DWORD attrib, DWORD 
 BOOL BASSSOXDEF(BASS_SOX_ChannelGetAttribute)(DWORD handle, DWORD attrib, DWORD *value) {
 	BASS_SOX_RESAMPLER* resampler;
 	BASS_SOX_RESAMPLER_SETTINGS* settings;
-	if (!get_resampler(handle, &resampler)) {
+	if (!resampler_registry_get(handle, &resampler)) {
 		return FALSE;
 	}
 	settings = resampler->settings;
@@ -165,16 +167,22 @@ BOOL BASSSOXDEF(BASS_SOX_ChannelGetAttribute)(DWORD handle, DWORD attrib, DWORD 
 
 //Release the BASS stream and associated resampler resources.
 BOOL BASSSOXDEF(BASS_SOX_StreamFree)(HSTREAM handle) {
+	BASS_SOX_RESAMPLER* resampler;
+	if (!resampler_registry_get(handle, &resampler)) {
+		return FALSE;
+	}
+	resampler_registry_remove(resampler);
+	resampler_free(resampler);
 	if (!BASS_StreamFree(handle)) {
 		return BASS_ERROR_UNKNOWN;
 	}
-	return release_resampler(handle);
+	return TRUE;
 }
 
 //Get the last error encountered by sox.
 const char* BASSSOXDEF(BASS_SOX_GetLastError)(HSTREAM handle) {
 	BASS_SOX_RESAMPLER* resampler;
-	if (!get_resampler(handle, &resampler)) {
+	if (!resampler_registry_get(handle, &resampler)) {
 		return "No such resampler.";
 	}
 	return resampler->soxr_error;

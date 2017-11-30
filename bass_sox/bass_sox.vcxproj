@@ -153,6 +153,8 @@
     <ClCompile Include="resampler_buffer.c" />
     <ClCompile Include="resampler_lock.c" />
     <ClCompile Include="resampler_registry.c" />
+    <ClCompile Include="resampler_settings.c" />
+    <ClCompile Include="resampler_soxr.c" />
     <ClCompile Include="ring_buffer.c" />
   </ItemGroup>
   <ItemGroup>
@@ -164,6 +166,8 @@
     <ClInclude Include="resampler_buffer.h" />
     <ClInclude Include="resampler_lock.h" />
     <ClInclude Include="resampler_registry.h" />
+    <ClInclude Include="resampler_settings.h" />
+    <ClInclude Include="resampler_soxr.h" />
     <ClInclude Include="ring_buffer.h" />
     <ClInclude Include="soxr\soxr.h" />
   </ItemGroup>

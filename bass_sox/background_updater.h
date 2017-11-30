@@ -1,5 +1,5 @@
 #include <windows.h>
 
-BOOL ensure_background_update();
+BOOL background_update_begin();
 
-BOOL end_background_update();
+BOOL background_update_end();

@@ -60,7 +60,11 @@ typedef struct {
 	volatile BOOL ready;
 } BASS_SOX_RESAMPLER;
 
-BOOL populate_resampler(BASS_SOX_RESAMPLER* resampler);
+BASS_SOX_RESAMPLER* resampler_create();
+
+BOOL resampler_free(BASS_SOX_RESAMPLER* resampler);
+
+BOOL resampler_populate(BASS_SOX_RESAMPLER* resampler);
 
 DWORD CALLBACK resampler_proc(HSTREAM handle, void *buffer, DWORD length, void *user);
 

@@ -13,7 +13,7 @@ size_t get_buffer_length(BASS_SOX_RESAMPLER* resampler) {
 	}
 }
 
-BOOL alloc_resampler_buffers(BASS_SOX_RESAMPLER* resampler) {
+BOOL resampler_buffer_create(BASS_SOX_RESAMPLER* resampler) {
 	size_t buffer_length = get_buffer_length(resampler);
 	resampler->buffer = calloc(sizeof(BASS_SOX_RESAMPLER_BUFFER), 1);
 	resampler->buffer->input_buffer_capacity = resampler->input_rate * resampler->input_frame_size;
@@ -27,7 +27,7 @@ BOOL alloc_resampler_buffers(BASS_SOX_RESAMPLER* resampler) {
 	return TRUE;
 }
 
-BOOL release_resampler_buffers(BASS_SOX_RESAMPLER* resampler) {
+BOOL resampler_buffer_free(BASS_SOX_RESAMPLER* resampler) {
 	if (resampler->buffer) {
 		if (resampler->buffer->playback) {
 			if (resampler->buffer->playback->buffer) {

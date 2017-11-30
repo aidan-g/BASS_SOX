@@ -45,6 +45,12 @@
     <ClInclude Include="resampler_lock.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="resampler_settings.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="resampler_soxr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Library Include="lib\bass.lib" />
@@ -72,6 +78,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="resampler_lock.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="resampler_settings.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="resampler_soxr.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
