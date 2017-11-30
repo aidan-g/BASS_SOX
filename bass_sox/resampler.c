@@ -91,6 +91,9 @@ BOOL read_output_data(BASS_SOX_RESAMPLER* resampler) {
 			return FALSE;
 		}
 	}
+	if (resampler->end) {
+		return FALSE;
+	}
 	resampler->soxr_error = soxr_process(
 		resampler->soxr,
 		buffer->input_buffer,

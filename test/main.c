@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <conio.h>
 #include "bass/bass.h"
 #include "../bass_sox/bass_sox.h"
 
@@ -13,6 +14,11 @@ int main()
 	//Start BASS.
 	if (!BASS_Init(-1, output_rate, 0, 0, NULL)) {
 		printf("Failed to initialize BASS: %d\n", BASS_ErrorGetCode());
+		return 1;
+	}
+
+	if (!BASS_SOX_Init()) {
+		printf("Failed to initialize SOX.");
 		return 1;
 	}
 
@@ -62,6 +68,12 @@ int main()
 		if (channel_active == BASS_ACTIVE_STOPPED) {
 			break;
 		}
+
+		if (_kbhit()) {
+			_getch();
+			BASS_ChannelSetPosition(source_channel, BASS_ChannelSeconds2Bytes(source_channel, channel_length_seconds - 5), BASS_POS_BYTE);
+		}
+
 		//Calculate the source position and write it out.
 		channel_position = BASS_ChannelGetPosition(source_channel, BASS_POS_BYTE);
 		channel_position_seconds = BASS_ChannelBytes2Seconds(source_channel, channel_position);
@@ -69,10 +81,15 @@ int main()
 		Sleep(1000);
 	} while (TRUE);
 
-	//Free resources.
+	//Free resources, little pauses expose bugs.
 	BASS_SOX_StreamFree(playback_channel);
+	Sleep(1000);
 	BASS_StreamFree(source_channel);
+	Sleep(1000);
+	BASS_SOX_Free();
+	Sleep(1000);
 	BASS_Free();
+	Sleep(1000);
 
 	return 0;
 }
