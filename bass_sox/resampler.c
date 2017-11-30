@@ -241,24 +241,23 @@ DWORD write_playback_data_direct(BASS_SOX_RESAMPLER* resampler, void* buffer, DW
 		if (remaining) {
 			if (!settings->background) {
 				resampler_populate(resampler);
-				if (resampler->end) {
-					if (settings->send_bass_streamproc_end) {
-						return BASS_STREAMPROC_END;
-					}
-					else {
-						return 0;
-					}
-				}
 			}
-			else {
+			if (!resampler->buffer->output_buffer_length) {
+				if (resampler->end) {
+					if (!position && settings->send_bass_streamproc_end) {
+						position = BASS_STREAMPROC_END;
+					}
+					break;
+				}
+				else {
 #ifdef _DEBUG
-				printf("Buffer underrun while reading output buffer.\n");
+					printf("Buffer underrun while reading output buffer.\n");
 #endif
-				goto buffer_underrun;
+					break;
+				}
 			}
 		}
 	} while (remaining);
-buffer_underrun:
 	return position;
 }
 
@@ -276,14 +275,6 @@ DWORD CALLBACK resampler_proc(HSTREAM handle, void *buffer, DWORD length, void *
 	}
 	if (!resampler->ready) {
 		return 0;
-	}
-	if (resampler->end) {
-		if (settings->send_bass_streamproc_end) {
-			return BASS_STREAMPROC_END;
-		}
-		else {
-			return 0;
-		}
 	}
 	playback = resampler->buffer->playback;
 	if (!playback) {
@@ -303,26 +294,28 @@ DWORD CALLBACK resampler_proc(HSTREAM handle, void *buffer, DWORD length, void *
 			if (attempts == playback->buffer->segment_count) {
 				if (!settings->background) {
 					resampler_populate(resampler);
+				}
+				if (ring_buffer_empty(playback->buffer)) {
 					if (resampler->end) {
-						if (settings->send_bass_streamproc_end) {
-							return BASS_STREAMPROC_END;
+						if (!position && settings->send_bass_streamproc_end) {
+							position = BASS_STREAMPROC_END;
 						}
-						else {
-							return 0;
-						}
+						goto done;
 					}
-					attempts = 0;
+					else {
+#ifdef _DEBUG
+						printf("Buffer underrun while reading playback buffer.\n");
+#endif
+						goto done;
+					}
 				}
 				else {
-#ifdef _DEBUG
-					printf("Buffer underrun while reading playback buffer.\n");
-#endif
-					goto buffer_underrun;
+					attempts = 0;
 				}
 			}
 		}
 		segment = 0;
 	} while (remaining);
-buffer_underrun:
+done:
 	return position;
 }

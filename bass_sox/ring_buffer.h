@@ -13,7 +13,11 @@ typedef struct {
 
 RING_BUFFER* ring_buffer_create(size_t segment_capacity, size_t segment_count);
 
+void ring_buffer_clear(RING_BUFFER* ring_buffer);
+
 void ring_buffer_free(RING_BUFFER* ring_buffer);
+
+BOOL ring_buffer_empty(RING_BUFFER* ring_buffer);
 
 void* offset_buffer(void* buffer, DWORD position);
 

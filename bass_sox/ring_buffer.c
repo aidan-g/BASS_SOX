@@ -14,6 +14,13 @@ RING_BUFFER* ring_buffer_create(size_t segment_capacity, size_t segment_count) {
 	return ring_buffer;
 }
 
+void ring_buffer_clear(RING_BUFFER* ring_buffer) {
+	DWORD current_segment;
+	for (current_segment = 0; current_segment < ring_buffer->segment_count; current_segment++) {
+		ring_buffer_free_segment(ring_buffer, current_segment);
+	}
+}
+
 void ring_buffer_free(RING_BUFFER* ring_buffer) {
 	DWORD current_segment;
 	if (ring_buffer->buffer) {
@@ -28,6 +35,16 @@ void ring_buffer_free(RING_BUFFER* ring_buffer) {
 		free(ring_buffer->segments);
 	}
 	free(ring_buffer);
+}
+
+BOOL ring_buffer_empty(RING_BUFFER* ring_buffer) {
+	DWORD current_segment;
+	for (current_segment = 0; current_segment < ring_buffer->segment_count; current_segment++) {
+		if (ring_buffer_segment_length(ring_buffer, current_segment)) {
+			return FALSE;
+		}
+	}
+	return TRUE;
 }
 
 void* offset_buffer(void* buffer, DWORD position) {

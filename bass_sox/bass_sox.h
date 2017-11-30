@@ -54,6 +54,10 @@ HSTREAM BASSSOXDEF(BASS_SOX_StreamCreate)(DWORD freq, DWORD flags, DWORD handle,
 __declspec(dllexport)
 BOOL BASSSOXDEF(BASS_SOX_StreamBuffer)(DWORD handle);
 
+//Clears any buffered data. Use when manually changing position.
+__declspec(dllexport)
+BOOL BASSSOXDEF(BASS_SOX_StreamBufferClear)(DWORD handle);
+
 //Set an attribute on the associated resampler.
 __declspec(dllexport)
 BOOL BASSSOXDEF(BASS_SOX_ChannelSetAttribute)(DWORD handle, DWORD attrib, DWORD value);

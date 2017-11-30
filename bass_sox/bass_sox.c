@@ -6,6 +6,8 @@
 #include "resampler_lock.h"
 #include "resampler_settings.h"
 
+#define BUFFER_CLEAR_TIMEOUT 5000
+
 //Determine whether the specified flags imply BASS_SAMPLE_FLOAT.
 BOOL is_float(DWORD flags) {
 	return  (flags & BASS_SAMPLE_FLOAT) == BASS_SAMPLE_FLOAT;
@@ -87,6 +89,22 @@ BOOL BASSSOXDEF(BASS_SOX_StreamBuffer)(DWORD handle) {
 		return FALSE;
 	}
 	return resampler_populate(resampler);
+}
+
+BOOL BASSSOXDEF(BASS_SOX_StreamBufferClear)(DWORD handle) {
+	BOOL success;
+	BASS_SOX_RESAMPLER* resampler;
+	if (!resampler_registry_get(handle, &resampler)) {
+		return FALSE;
+	}
+	if (!resampler_lock_enter(resampler, BUFFER_CLEAR_TIMEOUT)) {
+		return FALSE;
+	}
+	success = resampler_buffer_clear(resampler);
+	if (!resampler_lock_exit(resampler)) {
+		return FALSE;
+	}
+	return TRUE;
 }
 
 BOOL BASSSOXDEF(BASS_SOX_ChannelSetAttribute)(DWORD handle, DWORD attrib, DWORD value) {

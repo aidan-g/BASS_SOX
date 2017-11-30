@@ -120,6 +120,22 @@ namespace ManagedBass.Sox
         }
 
         [DllImport(DllName)]
+        static extern bool BASS_SOX_StreamBufferClear(int Handle);
+
+        /// <summary>
+        /// Clear any buffered data for the stream.
+        /// </summary>
+        /// <remarks>
+        /// Use this when manually changing the stream position.
+        /// </remarks>
+        /// <param name="Handle">The stream's handle.</param>
+        /// <returns></returns>
+        public static bool StreamBufferClear(int Handle)
+        {
+            return BASS_SOX_StreamBufferClear(Handle);
+        }
+
+        [DllImport(DllName)]
         static extern bool BASS_SOX_ChannelSetAttribute(int Handle, SoxChannelAttribute Attribute, int Value);
 
         /// <summary>

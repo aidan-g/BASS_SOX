@@ -27,6 +27,19 @@ BOOL resampler_buffer_create(BASS_SOX_RESAMPLER* resampler) {
 	return TRUE;
 }
 
+BOOL resampler_buffer_clear(BASS_SOX_RESAMPLER* resampler) {
+	resampler->buffer->input_buffer_length = 0;
+	resampler->buffer->output_buffer_length = 0;
+	if (resampler->buffer->playback) {
+		resampler->buffer->playback->read_position = 0;
+		resampler->buffer->playback->read_segment = 0;
+		resampler->buffer->playback->write_position = 0;
+		resampler->buffer->playback->write_segment = 0;
+		ring_buffer_clear(resampler->buffer->playback->buffer);
+	}
+	return TRUE;
+}
+
 BOOL resampler_buffer_free(BASS_SOX_RESAMPLER* resampler) {
 	if (resampler->buffer) {
 		if (resampler->buffer->playback) {

@@ -71,7 +71,8 @@ int main()
 
 		if (_kbhit()) {
 			_getch();
-			BASS_ChannelSetPosition(source_channel, BASS_ChannelSeconds2Bytes(source_channel, channel_length_seconds - 5), BASS_POS_BYTE);
+			BASS_ChannelSetPosition(source_channel, BASS_ChannelSeconds2Bytes(source_channel, channel_length_seconds - 10), BASS_POS_BYTE);
+			BASS_SOX_StreamBufferClear(playback_channel);
 		}
 
 		//Calculate the source position and write it out.
@@ -83,13 +84,9 @@ int main()
 
 	//Free resources, little pauses expose bugs.
 	BASS_SOX_StreamFree(playback_channel);
-	Sleep(1000);
 	BASS_StreamFree(source_channel);
-	Sleep(1000);
 	BASS_SOX_Free();
-	Sleep(1000);
 	BASS_Free();
-	Sleep(1000);
 
 	return 0;
 }
