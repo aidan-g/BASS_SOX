@@ -12,17 +12,14 @@ HANDLE background_update_handle = NULL;
 DWORD WINAPI background_update(void* args) {
 	DWORD a;
 	DWORD length;
-	BASS_SOX_RESAMPLER** resamplers;
+	BASS_SOX_RESAMPLER** resamplers = malloc(sizeof(BASS_SOX_RESAMPLER*) * MAX_RESAMPLERS);
 	background_update_active = TRUE;
 	while (!background_update_shutdown) {
 		BOOL success = FALSE;
-		if (!resampler_registry_get_all(&resamplers, &length)) {
+		if (!resampler_registry_get_all(resamplers, &length)) {
 			return FALSE;
 		}
 		for (a = 0; a < length; a++) {
-			if (!resamplers[a]) {
-				continue;
-			}
 			if (!resamplers[a]->settings->background) {
 				continue;
 			}
@@ -34,6 +31,7 @@ DWORD WINAPI background_update(void* args) {
 		}
 		Sleep(UPDATE_INTERVAL);
 	}
+	free(resamplers);
 	background_update_active = FALSE;
 	return TRUE;
 }

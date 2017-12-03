@@ -1,5 +1,6 @@
 ﻿using NUnit.Framework;
 using System;
+using System.Linq;
 using System.Threading;
 
 namespace ManagedBass.Sox.Test
@@ -17,14 +18,19 @@ namespace ManagedBass.Sox.Test
                 Assert.Fail(string.Format("Failed to initialize BASS: {0}", Enum.GetName(typeof(Errors), Bass.LastError)));
             }
 
+            if (!BassSox.Init())
+            {
+                Assert.Fail("Failed to initialize SOX.");
+            }
+
             var sourceChannel = Bass.CreateStream(@"C:\Source\Prototypes\Resources\1 - 6 - DYE (game version).mp3", 0, 0, BassFlags.Decode | BassFlags.Float);
-            if (sourceChannel == -1)
+            if (sourceChannel == 0)
             {
                 Assert.Fail(string.Format("Failed to create source stream: {0}", Enum.GetName(typeof(Errors), Bass.LastError)));
             }
 
             var playbackChannel = BassSox.StreamCreate(OUTPUT_RATE, BassFlags.Float, sourceChannel);
-            if (playbackChannel == -1)
+            if (playbackChannel == 0)
             {
                 Assert.Fail(string.Format("Failed to create playback stream: {0}", Enum.GetName(typeof(Errors), Bass.LastError)));
             }
@@ -110,6 +116,113 @@ namespace ManagedBass.Sox.Test
             if (!Bass.Free())
             {
                 Assert.Fail(string.Format("Failed to free BASS: {0}", Enum.GetName(typeof(Errors), Bass.LastError)));
+            }
+        }
+
+        [Test]
+        public void Test002()
+        {
+            try
+            {
+                if (!Bass.Init(Bass.NoSoundDevice, 44100))
+                {
+                    Assert.Fail(string.Format("Failed to initialize BASS: {0}", Enum.GetName(typeof(Errors), Bass.LastError)));
+                }
+
+                if (!BassSox.Init())
+                {
+                    Assert.Fail("Failed to initialize SOX.");
+                }
+
+                var channels = new int[10];
+                for (var a = 0; a < 10; a++)
+                {
+                    channels[a] = Bass.CreateStream(44100, 2, BassFlags.Decode, StreamProcedureType.Dummy);
+                    Assert.AreNotEqual(0, channels[a]);
+                }
+
+                var resamplers = new int[10];
+                for (var a = 0; a < 10; a++)
+                {
+                    resamplers[a] = BassSox.StreamCreate(48000, BassFlags.Decode, channels[a]);
+                    Assert.AreNotEqual(0, resamplers[a]);
+                }
+
+                for (var a = 0; a < 10; a++)
+                {
+                    var success = BassSox.StreamFree(resamplers[a]);
+                    Assert.IsTrue(success);
+                }
+
+                for (var a = 0; a < 10; a++)
+                {
+                    Bass.StreamFree(channels[a]);
+                }
+            }
+            finally
+            {
+                BassSox.Free();
+                Bass.Free();
+            }
+        }
+
+        [Test]
+        public void Test003()
+        {
+            try
+            {
+                if (!BassSox.Init())
+                {
+                    Assert.Fail("Failed to initialize SOX.");
+                }
+
+                var channel = BassSox.StreamCreate(44100, BassFlags.Decode, 0);
+                Assert.AreEqual(0, channel);
+
+                var success = BassSox.StreamFree(0);
+                Assert.IsFalse(success);
+            }
+            finally
+            {
+                BassSox.Free();
+            }
+        }
+
+        [Test]
+        public void Test004()
+        {
+            Assert.IsFalse(BassSox.Free());
+            Assert.IsTrue(BassSox.Init());
+            Assert.IsFalse(BassSox.Init());
+            Assert.IsTrue(BassSox.Free());
+            Assert.IsFalse(BassSox.Free());
+        }
+
+        [Test]
+        public void Test005()
+        {
+            try
+            {
+                if (!Bass.Init(Bass.NoSoundDevice, 44100))
+                {
+                    Assert.Fail(string.Format("Failed to initialize BASS: {0}", Enum.GetName(typeof(Errors), Bass.LastError)));
+                }
+
+                if (!BassSox.Init())
+                {
+                    Assert.Fail("Failed to initialize SOX.");
+                }
+
+                var channel = Bass.CreateStream(44100, 2, BassFlags.Decode, StreamProcedureType.Dummy);
+                var resampler = BassSox.StreamCreate(44100, BassFlags.Decode, channel);
+                Assert.AreEqual(channel, resampler);
+
+                Bass.StreamFree(channel);
+            }
+            finally
+            {
+                BassSox.Free();
+                Bass.Free();
             }
         }
     }

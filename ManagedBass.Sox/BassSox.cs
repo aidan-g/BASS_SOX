@@ -33,12 +33,6 @@ namespace ManagedBass.Sox
         /// <see cref="bool"/>
         /// </summary>
         Background = 6,
-        /// <summary>
-        /// Whether to send BASS_STREAMPROC_END at the end of a stream.
-        /// You should disable this if using ASIO.
-        /// <see cref="bool"/>
-        /// </summary>
-        SendBassStreamProcEnd = 7
     }
 
     public enum SoxChannelQuality

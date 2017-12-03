@@ -37,7 +37,6 @@ typedef struct {
 	size_t buffer_length;
 	unsigned int threads;
 	BOOL background;
-	BOOL send_bass_streamproc_end;
 } BASS_SOX_RESAMPLER_SETTINGS;
 
 typedef struct {
@@ -66,6 +65,7 @@ BOOL resampler_free(BASS_SOX_RESAMPLER* resampler);
 
 BOOL resampler_populate(BASS_SOX_RESAMPLER* resampler);
 
+__declspec(dllexport)
 DWORD CALLBACK resampler_proc(HSTREAM handle, void *buffer, DWORD length, void *user);
 
 #endif

@@ -76,9 +76,9 @@ int main()
 		}
 
 		//Calculate the source position and write it out.
-		channel_position = BASS_ChannelGetPosition(source_channel, BASS_POS_BYTE);
-		channel_position_seconds = BASS_ChannelBytes2Seconds(source_channel, channel_position);
-		//printf("%d/%d\n", (int)channel_position_seconds, (int)channel_length_seconds);
+		channel_position = BASS_ChannelGetPosition(playback_channel, BASS_POS_BYTE);
+		channel_position_seconds = BASS_ChannelBytes2Seconds(playback_channel, channel_position);
+		printf("%d/%d\n", (int)channel_position_seconds, (int)channel_length_seconds);
 		Sleep(1000);
 	} while (TRUE);
 

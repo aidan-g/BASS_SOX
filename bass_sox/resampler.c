@@ -244,7 +244,7 @@ DWORD write_playback_data_direct(BASS_SOX_RESAMPLER* resampler, void* buffer, DW
 			}
 			if (!resampler->buffer->output_buffer_length) {
 				if (resampler->end) {
-					if (!position && settings->send_bass_streamproc_end) {
+					if (!position) {
 						position = BASS_STREAMPROC_END;
 					}
 					break;
@@ -297,7 +297,7 @@ DWORD CALLBACK resampler_proc(HSTREAM handle, void *buffer, DWORD length, void *
 				}
 				if (ring_buffer_empty(playback->buffer)) {
 					if (resampler->end) {
-						if (!position && settings->send_bass_streamproc_end) {
+						if (!position) {
 							position = BASS_STREAMPROC_END;
 						}
 						goto done;

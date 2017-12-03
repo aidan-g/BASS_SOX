@@ -1,11 +1,8 @@
 ﻿using ManagedBass.Asio;
+using ManagedBass.Sox.Asio;
 using NUnit.Framework;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace ManagedBass.Sox.Test
 {
@@ -22,7 +19,7 @@ namespace ManagedBass.Sox.Test
             }
 
             var sourceChannel = Bass.CreateStream(@"C:\Source\Prototypes\Resources\1 - 6 - DYE (game version).mp3", 0, 0, BassFlags.Decode | BassFlags.Float);
-            if (sourceChannel == -1)
+            if (sourceChannel == 0)
             {
                 Assert.Fail(string.Format("Failed to create source stream: {0}", Enum.GetName(typeof(Errors), Bass.LastError)));
             }
@@ -33,23 +30,25 @@ namespace ManagedBass.Sox.Test
             }
 
             var playbackChannel = BassSox.StreamCreate(OUTPUT_RATE, BassFlags.Decode | BassFlags.Float, sourceChannel);
-            if (playbackChannel == -1)
+            if (playbackChannel == 0)
             {
                 Assert.Fail(string.Format("Failed to create playback stream: {0}", Enum.GetName(typeof(Errors), Bass.LastError)));
             }
 
             BassSox.ChannelSetAttribute(playbackChannel, SoxChannelAttribute.BufferLength, 5);
             BassSox.ChannelSetAttribute(playbackChannel, SoxChannelAttribute.Background, true);
-            BassSox.ChannelSetAttribute(playbackChannel, SoxChannelAttribute.SendBassStreamProcEnd, false);
 
             if (!BassAsio.Init(0, AsioInitFlags.Thread))
             {
                 Assert.Fail(string.Format("Failed to initialize ASIO: {0}", Enum.GetName(typeof(Errors), BassAsio.LastError)));
             }
 
-            this.AsioProcedure = this.GetAsioProcedure(playbackChannel);
+            if (!BassSoxAsio.StreamSet(playbackChannel))
+            {
+                Assert.Fail("Failed to set ASIO stream.");
+            }
 
-            if (!BassAsio.ChannelEnable(false, 0, this.AsioProcedure))
+            if (!BassSoxAsio.ChannelEnable(false, 0))
             {
                 Assert.Fail(string.Format("Failed to enable ASIO: {0}", Enum.GetName(typeof(Errors), BassAsio.LastError)));
             }
@@ -100,45 +99,79 @@ namespace ManagedBass.Sox.Test
                 Thread.Sleep(1000);
             } while (true);
 
-            if (!BassSox.StreamFree(playbackChannel))
-            {
-                Assert.Fail(string.Format("Failed to free the playback stream: {0}", Enum.GetName(typeof(Errors), Bass.LastError)));
-            }
+            BassAsio.Stop();
 
-            if (!Bass.StreamFree(sourceChannel))
-            {
-                Assert.Fail(string.Format("Failed to free the source stream: {0}", Enum.GetName(typeof(Errors), Bass.LastError)));
-            }
+            BassSox.StreamFree(playbackChannel);
+            Bass.StreamFree(sourceChannel);
+            BassSox.Free();
+            BassSoxAsio.Free();
+            BassAsio.Free();
+            Bass.Free();
+        }
 
-            if (!BassSox.Free())
+        [Test]
+        public void Test002()
+        {
+            try
             {
-                Assert.Fail("Failed to free SOX.");
-            }
+                Bass.Init(Bass.NoSoundDevice, 44100);
+                BassSox.Init();
+                BassSoxAsio.Init();
 
-            if (!BassAsio.Free())
-            {
-                Assert.Fail(string.Format("Failed to free ASIO: {0}", Enum.GetName(typeof(Errors), Bass.LastError)));
-            }
+                var channel = Bass.CreateStream(44100, 2, BassFlags.Decode, StreamProcedureType.Dummy);
+                var resampler = BassSox.StreamCreate(48000, BassFlags.Decode, channel);
 
-            if (!Bass.Free())
+                Assert.IsTrue(BassSoxAsio.StreamSet(resampler));
+
+                var retrieved = default(int);
+                Assert.IsTrue(BassSoxAsio.StreamGet(out retrieved));
+                Assert.AreEqual(resampler, retrieved);
+
+                Assert.IsTrue(BassSox.StreamFree(resampler));
+                Assert.IsTrue(Bass.StreamFree(channel));
+            }
+            finally
             {
-                Assert.Fail(string.Format("Failed to free BASS: {0}", Enum.GetName(typeof(Errors), Bass.LastError)));
+                BassSoxAsio.Free();
+                BassSox.Free();
+                Bass.Free();
             }
         }
 
-        private AsioProcedure AsioProcedure { get; set; }
-
-        private AsioProcedure GetAsioProcedure(int playbackChannel)
+        [Test]
+        public void Test003()
         {
-            return new AsioProcedure((Input, Channel, Buffer, Length, User) =>
+            try
             {
-                var result = Bass.ChannelGetData(playbackChannel, Buffer, Length);
-                if (result <= 0)
-                {
-                    result = 0;
-                }
-                return result;
-            });
+                Bass.Init(Bass.NoSoundDevice, 44100);
+                BassSox.Init();
+                BassSoxAsio.Init();
+
+                var channel = Bass.CreateStream(44100, 2, BassFlags.Decode, StreamProcedureType.Dummy);
+
+                Assert.IsFalse(BassSoxAsio.StreamSet(channel));
+
+                var retrieved = default(int);
+                Assert.IsFalse(BassSoxAsio.StreamGet(out retrieved));
+
+                Assert.IsTrue(Bass.StreamFree(channel));
+            }
+            finally
+            {
+                BassSoxAsio.Free();
+                BassSox.Free();
+                Bass.Free();
+            }
+        }
+
+        [Test]
+        public void Test004()
+        {
+            Assert.IsFalse(BassSoxAsio.Free());
+            Assert.IsTrue(BassSoxAsio.Init());
+            Assert.IsFalse(BassSoxAsio.Init());
+            Assert.IsTrue(BassSoxAsio.Free());
+            Assert.IsFalse(BassSoxAsio.Free());
         }
     }
 }

@@ -5,7 +5,6 @@ BOOL resampler_settings_create(BASS_SOX_RESAMPLER* resampler) {
 	if (!resampler->settings) {
 		return FALSE;
 	}
-	resampler->settings->send_bass_streamproc_end = TRUE;
 	return TRUE;
 }
 

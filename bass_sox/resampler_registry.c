@@ -2,10 +2,7 @@
 #include "resampler_lock.h"
 #include "resampler_settings.h"
 
-//10 should be enough for anybody.
-#define MAX_RESAMPLERS 10
-
-BASS_SOX_RESAMPLER* resamplers[MAX_RESAMPLERS];
+static BASS_SOX_RESAMPLER* resamplers[MAX_RESAMPLERS];
 
 //Register a resampler.
 BOOL resampler_registry_add(BASS_SOX_RESAMPLER* resampler) {
@@ -35,10 +32,16 @@ BOOL resampler_registry_remove(BASS_SOX_RESAMPLER* resampler) {
 	return FALSE;
 }
 
-BOOL resampler_registry_get_all(BASS_SOX_RESAMPLER*** __resamplers, DWORD* length)
+BOOL resampler_registry_get_all(BASS_SOX_RESAMPLER** __resamplers, DWORD* length)
 {
-	*length = MAX_RESAMPLERS;
-	*__resamplers = resamplers;
+	BYTE a;
+	*length = 0;
+	for (a = 0; a < MAX_RESAMPLERS; a++) {
+		if (!resamplers[a]) {
+			continue;
+		}
+		__resamplers[(*length)++] = resamplers[a];
+	}
 	return TRUE;
 }
 
