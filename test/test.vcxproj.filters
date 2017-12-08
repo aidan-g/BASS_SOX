@@ -28,9 +28,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Library Include="lib\bass.lib" />
-    <Library Include="lib\bassasio.lib" />
-    <Library Include="lib\libsoxr.lib" />
-    <Library Include="lib\msvcrt.lib" />
+    <Library Include="..\lib\msvcrt.lib" />
+    <Library Include="..\lib\bass.lib" />
   </ItemGroup>
 </Project>

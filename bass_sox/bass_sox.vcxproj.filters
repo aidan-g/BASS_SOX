@@ -53,12 +53,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Library Include="lib\bass.lib" />
-    <Library Include="lib\bassasio.lib" />
-    <Library Include="lib\msvcrt.lib" />
-    <Library Include="lib\libsoxr.lib" />
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="bass_sox.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -86,5 +80,10 @@
     <ClCompile Include="resampler_soxr.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="..\lib\bass.lib" />
+    <Library Include="..\lib\libsoxr.lib" />
+    <Library Include="..\lib\msvcrt.lib" />
   </ItemGroup>
 </Project>

@@ -4,13 +4,13 @@
 #include "bass/bassasio.h"
 
 BOOL is_initialized = FALSE;
-BASS_SOX_RESAMPLER* resampler = NULL;
+DWORD channel_handle = 0;
 
 BOOL BASSSOXASIODEF(BASS_SOX_ASIO_Init)() {
 	if (is_initialized) {
 		return FALSE;
 	}
-	resampler = NULL;
+	channel_handle = 0;
 	is_initialized = TRUE;
 	return TRUE;
 }
@@ -19,24 +19,25 @@ BOOL BASSSOXASIODEF(BASS_SOX_ASIO_Free)() {
 	if (!is_initialized) {
 		return FALSE;
 	}
-	resampler = NULL;
+	channel_handle = 0;
 	is_initialized = FALSE;
 	return TRUE;
 }
 
 BOOL BASSSOXASIODEF(BASS_SOX_ASIO_StreamGet)(DWORD* handle) {
-	if (!resampler) {
+	if (!channel_handle) {
 		return FALSE;
 	}
-	*handle = resampler->output_channel;
+	*handle = channel_handle;
 	return TRUE;
 }
 
 BOOL BASSSOXASIODEF(BASS_SOX_ASIO_StreamSet)(DWORD handle) {
+	BASS_SOX_RESAMPLER* resampler;
 	if (!resampler_registry_get(handle, &resampler)) {
-		resampler = NULL;
 		return FALSE;
 	}
+	channel_handle = handle;
 	return TRUE;
 }
 
@@ -45,11 +46,19 @@ BOOL BASSSOXASIODEF(BASS_SOX_ASIO_ChannelEnable)(BOOL input, DWORD channel, void
 }
 
 DWORD CALLBACK asio_sox_stream_proc(BOOL input, DWORD channel, void *buffer, DWORD length, void *user) {
-	if (!resampler) {
+	DWORD result;
+	BASS_SOX_RESAMPLER * resampler;
+	if (!channel_handle) {
 		return 0;
 	}
-	DWORD result = resampler_proc(0, buffer, length, resampler);
-	if (result == BASS_STREAMPROC_END) {
+	if (!resampler_registry_get(channel_handle, &resampler)) {
+		return 0;
+	}
+	result = resampler_proc(channel_handle, buffer, length, resampler);
+	switch (result)
+	{
+	case BASS_STREAMPROC_END:
+	case BASS_ERROR_UNKNOWN:
 		result = 0;
 	}
 	return result;
