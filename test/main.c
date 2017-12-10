@@ -23,7 +23,7 @@ int main()
 	}
 
 	//Create a DECODE stream for a crappy song.
-	source_channel = BASS_StreamCreateFile(FALSE, "C:\\Source\\Prototypes\\Resources\\1 - 6 - DYE (game version).mp3", 0, 0, BASS_STREAM_DECODE | BASS_SAMPLE_FLOAT);
+	source_channel = BASS_StreamCreateFile(FALSE, "D:\\Source\\Prototypes\\Resources\\1 - 6 - DYE (game version).mp3", 0, 0, BASS_STREAM_DECODE | BASS_SAMPLE_FLOAT);
 	if (source_channel == 0) {
 		printf("Failed to create source stream: %d\n", BASS_ErrorGetCode());
 		return 1;

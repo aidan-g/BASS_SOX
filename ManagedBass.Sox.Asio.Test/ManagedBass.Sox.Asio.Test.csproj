@@ -58,16 +58,6 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\ManagedBass.Sox.Asio\ManagedBass.Sox.Asio.csproj">
-      <Project>{4b2f7628-edce-481b-81ff-7d6d17b08d9d}</Project>
-      <Name>ManagedBass.Sox.Asio</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\ManagedBass.Sox\ManagedBass.Sox.csproj">
-      <Project>{8f53659c-d24e-4a21-a87d-00624d24b9b5}</Project>
-      <Name>ManagedBass.Sox</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
   </ItemGroup>
   <ItemGroup>
@@ -83,6 +73,16 @@
       <Link>bass_sox_asio.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ManagedBass.Sox.Asio\ManagedBass.Sox.Asio.csproj">
+      <Project>{4b2f7628-edce-481b-81ff-7d6d17b08d9d}</Project>
+      <Name>ManagedBass.Sox.Asio</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\ManagedBass.Sox\ManagedBass.Sox.csproj">
+      <Project>{8f53659c-d24e-4a21-a87d-00624d24b9b5}</Project>
+      <Name>ManagedBass.Sox</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

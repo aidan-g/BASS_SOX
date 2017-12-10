@@ -37,6 +37,7 @@ typedef struct {
 	size_t buffer_length;
 	unsigned int threads;
 	BOOL background;
+	BOOL keep_alive;
 } BASS_SOX_RESAMPLER_SETTINGS;
 
 typedef struct {

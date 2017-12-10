@@ -33,24 +33,28 @@ BOOL resampler_free(BASS_SOX_RESAMPLER* resampler) {
 }
 
 BOOL ensure_resampler(BASS_SOX_RESAMPLER* resampler) {
+	BOOL success = TRUE;
 	//If reload is requested then release the current resampler.
 	if (resampler->reload) {
 		resampler->ready = FALSE;
-		resampler_soxr_free(resampler);
-		resampler_buffer_free(resampler);
+		success &= resampler_soxr_free(resampler);
+		success &= resampler_buffer_free(resampler);
+		resampler->reload = FALSE;
 	}
 
 	//If no resampler exists then create it.
 	if (!resampler->soxr) {
 		if (!resampler_soxr_create(resampler)) {
-			return FALSE;
+			success = FALSE;
 		}
-		if (!resampler_buffer_create(resampler)) {
-			return FALSE;
+		else if (!resampler_buffer_create(resampler)) {
+			success = FALSE;
 		}
-		resampler->ready = TRUE;
+		else {
+			resampler->ready = TRUE;
+		}
 	}
-	return TRUE;
+	return success;
 }
 
 BOOL read_input_data(BASS_SOX_RESAMPLER* resampler) {
@@ -64,6 +68,7 @@ BOOL read_input_data(BASS_SOX_RESAMPLER* resampler) {
 #ifdef _DEBUG
 		printf("Source channel has ended.\n");
 #endif
+		buffer->input_buffer_length = 0;
 		resampler->end = TRUE;
 		return FALSE;
 	}
@@ -71,6 +76,7 @@ BOOL read_input_data(BASS_SOX_RESAMPLER* resampler) {
 #ifdef _DEBUG
 		printf("Error reading from source channel.\n");
 #endif
+		buffer->input_buffer_length = 0;
 		resampler->end = TRUE;
 		return FALSE;
 	}
@@ -258,6 +264,10 @@ DWORD write_playback_data_direct(BASS_SOX_RESAMPLER* resampler, void* buffer, DW
 			}
 		}
 	} while (remaining);
+	if (position == BASS_STREAMPROC_END && resampler->settings->keep_alive) {
+		resampler->end = FALSE;
+		position = 0;
+	}
 	return position;
 }
 
@@ -294,6 +304,7 @@ DWORD CALLBACK resampler_proc(HSTREAM handle, void *buffer, DWORD length, void *
 			if (attempts == playback->buffer->segment_count) {
 				if (!settings->background) {
 					resampler_populate(resampler);
+					playback = resampler->buffer->playback;
 				}
 				if (ring_buffer_empty(playback->buffer)) {
 					if (resampler->end) {
@@ -317,5 +328,9 @@ DWORD CALLBACK resampler_proc(HSTREAM handle, void *buffer, DWORD length, void *
 		segment = 0;
 	} while (remaining);
 done:
+	if (position == BASS_STREAMPROC_END && resampler->settings->keep_alive) {
+		resampler->end = FALSE;
+		position = 0;
+	}
 	return position;
 }

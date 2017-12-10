@@ -33,6 +33,10 @@ namespace ManagedBass.Sox
         /// <see cref="bool"/>
         /// </summary>
         Background = 6,
+        /// <summary>
+        /// <see cref="bool"/>
+        /// </summary>
+        KeepAlive = 7
     }
 
     public enum SoxChannelQuality
@@ -127,6 +131,20 @@ namespace ManagedBass.Sox
         public static bool StreamBufferClear(int Handle)
         {
             return BASS_SOX_StreamBufferClear(Handle);
+        }
+
+        [DllImport(DllName)]
+        static extern bool BASS_SOX_StreamBufferLength(int Handle, out int Value);
+
+        /// <summary>
+        /// Get the length of buffered data. Can be used to calculate the stream position.
+        /// </summary>
+        /// <param name="Handle">The stream's handle.</param>
+        /// <param name="Value"></param>
+        /// <returns></returns>
+        public static bool StreamBufferLength(int Handle, out int Value)
+        {
+            return BASS_SOX_StreamBufferLength(Handle, out Value);
         }
 
         [DllImport(DllName)]

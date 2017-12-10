@@ -16,7 +16,7 @@ typedef enum {
 	BUFFER_LENGTH = 4,
 	THREADS = 5,
 	BACKGROUND = 6,
-	SEND_BASS_STREAMPROC_END = 7
+	KEEP_ALIVE = 7
 } BASS_SOX_ATTRIBUTE;
 
 typedef enum {
@@ -57,6 +57,10 @@ BOOL BASSSOXDEF(BASS_SOX_StreamBuffer)(DWORD handle);
 //Clears any buffered data. Use when manually changing position.
 __declspec(dllexport)
 BOOL BASSSOXDEF(BASS_SOX_StreamBufferClear)(DWORD handle);
+
+//Get the length of buffered data. Can be used to calculate the stream position.
+__declspec(dllexport)
+BOOL BASSSOXDEF(BASS_SOX_StreamBufferLength)(DWORD handle, DWORD* value);
 
 //Set an attribute on the associated resampler.
 __declspec(dllexport)

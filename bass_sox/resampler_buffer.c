@@ -58,3 +58,26 @@ BOOL resampler_buffer_free(BASS_SOX_RESAMPLER* resampler) {
 	}
 	return TRUE;
 }
+
+BOOL resampler_buffer_length(BASS_SOX_RESAMPLER* resampler, DWORD* length) {
+	DWORD a;
+	BASS_SOX_PLAYBACK_BUFFER* buffer;
+	buffer = resampler->buffer->playback;
+	if (buffer) {
+		*length = 0;
+		for (a = 0; a < buffer->buffer->segment_count; a++) {
+			if (ring_buffer_segment_length(buffer->buffer, a)) {
+				(*length)++;
+			}
+		}
+	}
+	else {
+		if (resampler->buffer->output_buffer_length) {
+			*length = 1;
+		}
+		else {
+			*length = 0;
+		}
+	}
+	return TRUE;
+}

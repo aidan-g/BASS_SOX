@@ -10,6 +10,9 @@ namespace ManagedBass.Sox.Test
     {
         const int OUTPUT_RATE = 192000;
 
+        /// <summary>
+        /// A basic end to end test.
+        /// </summary>
         [Test]
         public void Test001()
         {
@@ -18,7 +21,7 @@ namespace ManagedBass.Sox.Test
                 Assert.Fail(string.Format("Failed to initialize BASS: {0}", Enum.GetName(typeof(Errors), Bass.LastError)));
             }
 
-            var sourceChannel = Bass.CreateStream(@"C:\Source\Prototypes\Resources\1 - 6 - DYE (game version).mp3", 0, 0, BassFlags.Decode | BassFlags.Float);
+            var sourceChannel = Bass.CreateStream(@"D:\Source\Prototypes\Resources\1 - 6 - DYE (game version).mp3", 0, 0, BassFlags.Decode | BassFlags.Float);
             if (sourceChannel == 0)
             {
                 Assert.Fail(string.Format("Failed to create source stream: {0}", Enum.GetName(typeof(Errors), Bass.LastError)));
@@ -109,6 +112,9 @@ namespace ManagedBass.Sox.Test
             Bass.Free();
         }
 
+        /// <summary>
+        /// Resampler stream handle can be set and retrieved.
+        /// </summary>
         [Test]
         public void Test002()
         {
@@ -138,6 +144,9 @@ namespace ManagedBass.Sox.Test
             }
         }
 
+        /// <summary>
+        /// Cannot set a stream which isn't a resampler.
+        /// </summary>
         [Test]
         public void Test003()
         {
@@ -164,6 +173,9 @@ namespace ManagedBass.Sox.Test
             }
         }
 
+        /// <summary>
+        /// Init/Free called out of sequence does not crash.
+        /// </summary>
         [Test]
         public void Test004()
         {

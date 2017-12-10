@@ -10,6 +10,15 @@ namespace ManagedBass.Sox.Test
     {
         const int OUTPUT_RATE = 192000;
 
+        const int BASS_STREAMPROC_ERR = -1;
+
+        const int BASS_STREAMPROC_EMPTY = 0;
+
+        const int BASS_STREAMPROC_END = -2147483648; //0x80000000;
+
+        /// <summary>
+        /// A basic end to end test.
+        /// </summary>
         [Test]
         public void Test001()
         {
@@ -23,7 +32,7 @@ namespace ManagedBass.Sox.Test
                 Assert.Fail("Failed to initialize SOX.");
             }
 
-            var sourceChannel = Bass.CreateStream(@"C:\Source\Prototypes\Resources\1 - 6 - DYE (game version).mp3", 0, 0, BassFlags.Decode | BassFlags.Float);
+            var sourceChannel = Bass.CreateStream(@"D:\Source\Prototypes\Resources\1 - 6 - DYE (game version).mp3", 0, 0, BassFlags.Decode | BassFlags.Float);
             if (sourceChannel == 0)
             {
                 Assert.Fail(string.Format("Failed to create source stream: {0}", Enum.GetName(typeof(Errors), Bass.LastError)));
@@ -119,6 +128,9 @@ namespace ManagedBass.Sox.Test
             }
         }
 
+        /// <summary>
+        /// MAX_RESAMPLERS (10) resampler channels are supported.
+        /// </summary>
         [Test]
         public void Test002()
         {
@@ -166,6 +178,9 @@ namespace ManagedBass.Sox.Test
             }
         }
 
+        /// <summary>
+        /// Invalid source channel is handled.
+        /// </summary>
         [Test]
         public void Test003()
         {
@@ -188,6 +203,9 @@ namespace ManagedBass.Sox.Test
             }
         }
 
+        /// <summary>
+        /// Init/Free called out of sequence does not crash.
+        /// </summary>
         [Test]
         public void Test004()
         {
@@ -198,6 +216,9 @@ namespace ManagedBass.Sox.Test
             Assert.IsFalse(BassSox.Free());
         }
 
+        /// <summary>
+        /// Resampling with same input/output rate is ignored.
+        /// </summary>
         [Test]
         public void Test005()
         {
@@ -218,6 +239,162 @@ namespace ManagedBass.Sox.Test
                 Assert.AreEqual(channel, resampler);
 
                 Bass.StreamFree(channel);
+            }
+            finally
+            {
+                BassSox.Free();
+                Bass.Free();
+            }
+        }
+
+        /// <summary>
+        /// Failure to read from source does not mark the stream as "complete" when <see cref="SoxChannelAttribute.KeepAlive"/> is specified.
+        /// </summary>
+        /// <param name="err"></param>
+        //[TestCase(BASS_STREAMPROC_ERR)] //-1 doesn't seem to be understood.
+        [TestCase(BASS_STREAMPROC_EMPTY)]
+        [TestCase(BASS_STREAMPROC_END)]
+        public void Test006(int? err)
+        {
+            try
+            {
+                if (!Bass.Init(Bass.NoSoundDevice, 44100))
+                {
+                    Assert.Fail(string.Format("Failed to initialize BASS: {0}", Enum.GetName(typeof(Errors), Bass.LastError)));
+                }
+
+                if (!BassSox.Init())
+                {
+                    Assert.Fail("Failed to initialize SOX.");
+                }
+
+                var channel = Bass.CreateStream(48000, 2, BassFlags.Decode, (handle, buffer, length, user) =>
+                {
+                    if (err.HasValue)
+                    {
+                        return err.Value;
+                    }
+                    return length;
+                });
+
+                var resampler = BassSox.StreamCreate(44100, BassFlags.Decode, channel);
+                BassSox.ChannelSetAttribute(resampler, SoxChannelAttribute.KeepAlive, true);
+
+                {
+                    var buffer = new byte[1024];
+                    var length = Bass.ChannelGetData(resampler, buffer, buffer.Length);
+                    Assert.AreEqual(0, length);
+                }
+
+                err = null;
+                Bass.ChannelSetPosition(channel, 0);
+
+                {
+                    var buffer = new byte[1024];
+                    var length = Bass.ChannelGetData(resampler, buffer, buffer.Length);
+                    Assert.AreEqual(buffer.Length, length);
+                }
+
+                Bass.StreamFree(channel);
+                BassSox.StreamFree(resampler);
+            }
+            finally
+            {
+                BassSox.Free();
+                Bass.Free();
+            }
+        }
+
+        /// <summary>
+        /// The buffer is populated over time.
+        /// </summary>
+        [Test]
+        public void Test007()
+        {
+            try
+            {
+                if (!Bass.Init(Bass.NoSoundDevice, 44100))
+                {
+                    Assert.Fail(string.Format("Failed to initialize BASS: {0}", Enum.GetName(typeof(Errors), Bass.LastError)));
+                }
+
+                if (!BassSox.Init())
+                {
+                    Assert.Fail("Failed to initialize SOX.");
+                }
+
+                var channel = Bass.CreateStream(48000, 2, BassFlags.Decode, (handle, buffer, length, user) => length);
+
+                var resampler = BassSox.StreamCreate(44100, BassFlags.Decode, channel);
+                BassSox.ChannelSetAttribute(resampler, SoxChannelAttribute.BufferLength, 5);
+                for (var a = 1; a <= 5; a++)
+                {
+                    var buffer = new byte[1024];
+                    var length = Bass.ChannelGetData(resampler, buffer, buffer.Length);
+                    if (!BassSox.StreamBufferLength(resampler, out length))
+                    {
+                        Assert.Fail("Failed to get SOX buffer length.");
+                    }
+                    Assert.AreEqual(a, length);
+                }
+
+                Bass.StreamFree(channel);
+                BassSox.StreamFree(resampler);
+            }
+            finally
+            {
+                BassSox.Free();
+                Bass.Free();
+            }
+        }
+
+        /// <summary>
+        /// The buffer size can be changed while decoding.
+        /// </summary>
+        [TestCase(1, 5, 10)]
+        [TestCase(10, 5, 1)]
+        public void Test008(params int[] sizes)
+        {
+            try
+            {
+                if (!Bass.Init(Bass.NoSoundDevice, 44100))
+                {
+                    Assert.Fail(string.Format("Failed to initialize BASS: {0}", Enum.GetName(typeof(Errors), Bass.LastError)));
+                }
+
+                if (!BassSox.Init())
+                {
+                    Assert.Fail("Failed to initialize SOX.");
+                }
+
+                var channel = Bass.CreateStream(48000, 2, BassFlags.Decode, (handle, buffer, length, user) => length);
+
+                var resampler = BassSox.StreamCreate(44100, BassFlags.Decode, channel);
+
+                foreach (var size in sizes)
+                {
+                    BassSox.ChannelSetAttribute(resampler, SoxChannelAttribute.BufferLength, size);
+                    for (var a = 1; a <= size + 10; a++)
+                    {
+                        var buffer = new byte[1024];
+                        var length = Bass.ChannelGetData(resampler, buffer, buffer.Length);
+                        if (!BassSox.StreamBufferLength(resampler, out length))
+                        {
+                            Assert.Fail("Failed to get SOX buffer length.");
+                        }
+                        if (a <= size)
+                        {
+                            Assert.AreEqual(a, length);
+                        }
+                        else
+                        {
+                            Assert.AreEqual(size, length);
+                        }
+                    }
+                }
+
+                Bass.StreamFree(channel);
+                BassSox.StreamFree(resampler);
             }
             finally
             {

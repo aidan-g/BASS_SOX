@@ -115,6 +115,14 @@ BOOL BASSSOXDEF(BASS_SOX_StreamBufferClear)(DWORD handle) {
 	return TRUE;
 }
 
+BOOL BASSSOXDEF(BASS_SOX_StreamBufferLength)(DWORD handle, DWORD* value) {
+	BASS_SOX_RESAMPLER* resampler;
+	if (!resampler_registry_get(handle, &resampler)) {
+		return FALSE;
+	}
+	return resampler_buffer_length(resampler, value);
+}
+
 BOOL BASSSOXDEF(BASS_SOX_ChannelSetAttribute)(DWORD handle, DWORD attrib, DWORD value) {
 	BASS_SOX_RESAMPLER* resampler;
 	BASS_SOX_RESAMPLER_SETTINGS* settings;
@@ -125,31 +133,37 @@ BOOL BASSSOXDEF(BASS_SOX_ChannelSetAttribute)(DWORD handle, DWORD attrib, DWORD 
 	switch (attrib) {
 	case QUALITY:
 		settings->quality = value;
-		return TRUE;
+		break;
 	case PHASE:
 		settings->phase = value;
-		return TRUE;
+		break;
 	case STEEP_FILTER:
 		settings->steep_filter = value;
-		return TRUE;
+		break;
 	case ALLOW_ALIASING:
 		settings->allow_aliasing = value;
-		return TRUE;
+		break;
 	case BUFFER_LENGTH:
 		settings->buffer_length = value;
-		return TRUE;
+		break;
 	case THREADS:
 		settings->threads = value;
-		return TRUE;
+		break;
 	case BACKGROUND:
 		settings->background = value;
 		if (settings->background) {
 			background_update_begin();
 		}
-		return TRUE;
+		break;
+	case KEEP_ALIVE:
+		settings->keep_alive = value;
+		break;
+	default:
+		return FALSE;
 	}
+	//TODO: Does this need to be synchronized?
 	resampler->reload = TRUE;
-	return FALSE;
+	return TRUE;
 }
 
 BOOL BASSSOXDEF(BASS_SOX_ChannelGetAttribute)(DWORD handle, DWORD attrib, DWORD *value) {
@@ -162,27 +176,32 @@ BOOL BASSSOXDEF(BASS_SOX_ChannelGetAttribute)(DWORD handle, DWORD attrib, DWORD 
 	switch (attrib) {
 	case QUALITY:
 		*value = settings->quality;
-		return TRUE;
+		break;
 	case PHASE:
 		*value = settings->phase;
-		return TRUE;
+		break;
 	case STEEP_FILTER:
 		*value = settings->steep_filter;
-		return TRUE;
+		break;
 	case ALLOW_ALIASING:
 		*value = settings->allow_aliasing;
-		return TRUE;
+		break;
 	case BUFFER_LENGTH:
 		*value = settings->buffer_length;
-		return TRUE;
+		break;
 	case THREADS:
 		*value = settings->threads;
-		return TRUE;
+		break;
 	case BACKGROUND:
 		*value = settings->background;
-		return TRUE;
+		break;
+	case KEEP_ALIVE:
+		*value = settings->keep_alive;
+		break;
+	default:
+		return FALSE;
 	}
-	return FALSE;
+	return TRUE;
 }
 
 //Release the BASS stream and associated resampler resources.
