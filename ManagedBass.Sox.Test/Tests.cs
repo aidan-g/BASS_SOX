@@ -402,5 +402,91 @@ namespace ManagedBass.Sox.Test
                 Bass.Free();
             }
         }
+
+        [Test]
+        public void Test009()
+        {
+            try
+            {
+                if (!Bass.Init(Bass.NoSoundDevice, 44100))
+                {
+                    Assert.Fail(string.Format("Failed to initialize BASS: {0}", Enum.GetName(typeof(Errors), Bass.LastError)));
+                }
+
+                if (!BassSox.Init())
+                {
+                    Assert.Fail("Failed to initialize SOX.");
+                }
+
+                var channel = Bass.CreateStream(48000, 2, BassFlags.Decode, (handle, buffer, length, user) => length);
+
+                var resampler = BassSox.StreamCreate(44100, BassFlags.Decode, channel);
+
+                {
+                    var length = default(int);
+                    BassSox.StreamBufferLength(resampler, out length);
+                    Assert.AreEqual(0, length);
+                }
+
+                Bass.StreamFree(channel);
+                BassSox.StreamFree(resampler);
+            }
+            finally
+            {
+                BassSox.Free();
+                Bass.Free();
+            }
+        }
+
+        /// <summary>
+        /// Buffer can be cleared.
+        /// </summary>
+        [TestCase(null)]    //Should use default.
+        [TestCase(0)]       //Should use default.
+        [TestCase(1)]
+        [TestCase(5)]
+        public void Test010(int? bufferLength)
+        {
+            try
+            {
+                if (!Bass.Init(Bass.NoSoundDevice, 44100))
+                {
+                    Assert.Fail(string.Format("Failed to initialize BASS: {0}", Enum.GetName(typeof(Errors), Bass.LastError)));
+                }
+
+                if (!BassSox.Init())
+                {
+                    Assert.Fail("Failed to initialize SOX.");
+                }
+
+                var channel = Bass.CreateStream(48000, 2, BassFlags.Decode, (handle, buffer, length, user) => length);
+
+                var resampler = BassSox.StreamCreate(44100, BassFlags.Decode, channel);
+
+                if (bufferLength.HasValue)
+                {
+                    BassSox.ChannelSetAttribute(resampler, SoxChannelAttribute.BufferLength, bufferLength.Value);
+                }
+
+                BassSox.StreamBufferClear(resampler);
+
+                for (var a = 0; a < (bufferLength.HasValue ? bufferLength.Value : 1); a++)
+                {
+                    var buffer = new byte[1024];
+                    var length = Bass.ChannelGetData(resampler, buffer, buffer.Length);
+                    Assert.AreEqual(buffer.Length, length);
+                }
+
+                BassSox.StreamBufferClear(resampler);
+
+                Bass.StreamFree(channel);
+                BassSox.StreamFree(resampler);
+            }
+            finally
+            {
+                BassSox.Free();
+                Bass.Free();
+            }
+        }
     }
 }

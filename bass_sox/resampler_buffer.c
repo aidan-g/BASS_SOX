@@ -15,6 +15,9 @@ size_t get_buffer_length(BASS_SOX_RESAMPLER* resampler) {
 
 BOOL resampler_buffer_create(BASS_SOX_RESAMPLER* resampler) {
 	size_t buffer_length = get_buffer_length(resampler);
+	if (resampler->buffer) {
+		resampler_buffer_free(resampler);
+	}
 	resampler->buffer = calloc(sizeof(BASS_SOX_RESAMPLER_BUFFER), 1);
 	resampler->buffer->input_buffer_capacity = resampler->input_rate * resampler->input_frame_size;
 	resampler->buffer->output_buffer_capacity = resampler->output_rate * resampler->output_frame_size;
@@ -28,6 +31,9 @@ BOOL resampler_buffer_create(BASS_SOX_RESAMPLER* resampler) {
 }
 
 BOOL resampler_buffer_clear(BASS_SOX_RESAMPLER* resampler) {
+	if (!resampler->buffer) {
+		return FALSE;
+	}
 	resampler->buffer->input_buffer_length = 0;
 	resampler->buffer->output_buffer_length = 0;
 	if (resampler->buffer->playback) {
@@ -55,6 +61,7 @@ BOOL resampler_buffer_free(BASS_SOX_RESAMPLER* resampler) {
 			free(resampler->buffer->output_buffer);
 		}
 		free(resampler->buffer);
+		resampler->buffer = NULL;
 	}
 	return TRUE;
 }
@@ -62,6 +69,9 @@ BOOL resampler_buffer_free(BASS_SOX_RESAMPLER* resampler) {
 BOOL resampler_buffer_length(BASS_SOX_RESAMPLER* resampler, DWORD* length) {
 	DWORD a;
 	BASS_SOX_PLAYBACK_BUFFER* buffer;
+	if (!resampler->buffer) {
+		return FALSE;
+	}
 	buffer = resampler->buffer->playback;
 	if (buffer) {
 		*length = 0;
