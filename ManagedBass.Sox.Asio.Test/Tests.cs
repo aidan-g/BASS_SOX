@@ -8,7 +8,7 @@ namespace ManagedBass.Sox.Test
 {
     public class AsioTests
     {
-        const int OUTPUT_RATE = 192000;
+        const int OUTPUT_RATE = 96000;
 
         /// <summary>
         /// A basic end to end test.
@@ -41,7 +41,7 @@ namespace ManagedBass.Sox.Test
             BassSox.ChannelSetAttribute(playbackChannel, SoxChannelAttribute.BufferLength, 5);
             BassSox.ChannelSetAttribute(playbackChannel, SoxChannelAttribute.Background, true);
 
-            if (!BassAsio.Init(0, AsioInitFlags.Thread))
+            if (!BassAsio.Init(2, AsioInitFlags.Thread))
             {
                 Assert.Fail(string.Format("Failed to initialize ASIO: {0}", Enum.GetName(typeof(Errors), BassAsio.LastError)));
             }

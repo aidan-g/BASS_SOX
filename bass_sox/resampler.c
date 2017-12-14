@@ -12,30 +12,39 @@
 #define BUFFER_UPDATE_TIMEOUT 0
 
 BASS_SOX_RESAMPLER* resampler_create() {
-	return calloc(sizeof(BASS_SOX_RESAMPLER), 1);
+	BASS_SOX_RESAMPLER* resampler = calloc(sizeof(BASS_SOX_RESAMPLER), 1);
+#if _DEBUG
+	printf("Created resampler: %d\n", resampler);
+#endif
+	return resampler;
 }
 
 BOOL resampler_free(BASS_SOX_RESAMPLER* resampler) {
-	if (!resampler_soxr_free(resampler)) {
-		return FALSE;
-	}
-	if (!resampler_buffer_free(resampler)) {
-		return FALSE;
-	}
-	if (!resampler_settings_free(resampler)) {
-		return FALSE;
-	}
-	if (!resampler_lock_free(resampler)) {
-		return FALSE;
-	}
+	BOOL success = TRUE;
+#if _DEBUG
+	printf("Releasing resampler.\n");
+#endif
+	success &= resampler_soxr_free(resampler);
+	success &= resampler_buffer_free(resampler);
+	success &= resampler_settings_free(resampler);
+	success &= resampler_lock_free(resampler);
 	free(resampler);
-	return TRUE;
+	resampler = NULL;
+	if (!success) {
+#if _DEBUG
+		printf("Failed to release resampler.\n");
+#endif
+	}
+	return success;
 }
 
 BOOL ensure_resampler(BASS_SOX_RESAMPLER* resampler) {
 	BOOL success = TRUE;
 	//If reload is requested then release the current resampler.
 	if (resampler->reload) {
+#if _DEBUG
+		printf("Reloading resampler.\n");
+#endif
 		resampler->ready = FALSE;
 		success &= resampler_soxr_free(resampler);
 		success &= resampler_buffer_free(resampler);
@@ -80,8 +89,13 @@ BOOL read_input_data(BASS_SOX_RESAMPLER* resampler) {
 		resampler->end = TRUE;
 		return FALSE;
 	}
-	if (resampler->end) {
-		resampler->end = FALSE;
+	else {
+#ifdef _DEBUG
+		printf("Read %d bytes from source channel.\n", buffer->input_buffer_length);
+#endif
+		if (resampler->end) {
+			resampler->end = FALSE;
+		}
 	}
 	return TRUE;
 }
@@ -111,12 +125,15 @@ BOOL read_output_data(BASS_SOX_RESAMPLER* resampler) {
 	);
 	if (resampler->soxr_error) {
 #ifdef _DEBUG
-		printf("Sox reported an error.\n");
+		printf("Sox reported an error: %s\n", resampler->soxr_error);
 #endif
 		return FALSE;
 	}
 	buffer->input_buffer_length = 0;
 	buffer->output_buffer_length = frame_count * resampler->output_frame_size;
+#ifdef _DEBUG
+	printf("Wrote %d bytes to output buffer.\n", buffer->output_buffer_length);
+#endif
 	return TRUE;
 }
 
@@ -142,9 +159,6 @@ BOOL read_playback_data(BASS_SOX_RESAMPLER* resampler) {
 		for (; segment < playback->buffer->segment_count; segment++) {
 			DWORD length;
 			if (!ring_buffer_segment_length(playback->buffer, segment)) {
-#ifdef _DEBUG
-				printf("Populating ring buffer segment %d.\n", segment);
-#endif
 				if (remaining > playback->buffer->segment_capacity) {
 					length = playback->buffer->segment_capacity;
 				}
@@ -152,6 +166,9 @@ BOOL read_playback_data(BASS_SOX_RESAMPLER* resampler) {
 					length = remaining;
 				}
 				ring_buffer_write_segment(playback->buffer, segment, offset_buffer(buffer->output_buffer, position), length);
+#ifdef _DEBUG
+				printf("Wrote %d bytes to playback buffer segment %d.\n", length, segment);
+#endif
 				if (playback->write_segment == (playback->buffer->segment_count - 1)) {
 					playback->write_segment = 0;
 				}
@@ -161,7 +178,6 @@ BOOL read_playback_data(BASS_SOX_RESAMPLER* resampler) {
 				remaining -= length;
 				position += length;
 				if (!remaining) {
-
 					break;
 				}
 			}
@@ -188,11 +204,11 @@ BOOL write_playback_data(BASS_SOX_RESAMPLER* resampler, DWORD segment, DWORD len
 	}
 	if (*read_length) {
 		ring_buffer_read_segment_with_offset(playback->buffer, segment, playback->read_position, *read_length, buffer, read_length);
+#ifdef _DEBUG
+		printf("Read %d bytes to playback buffer segment %d.\n", *read_length, segment);
+#endif
 		playback->read_position += *read_length;
 		if (playback->read_position == segment_length) {
-#ifdef _DEBUG
-			printf("Freeing ring buffer segment %d.\n", segment);
-#endif
 			ring_buffer_free_segment(playback->buffer, segment);
 			if (playback->read_segment == (playback->buffer->segment_count - 1)) {
 				playback->read_segment = 0;
@@ -236,6 +252,9 @@ DWORD write_playback_data_direct(BASS_SOX_RESAMPLER* resampler, void* buffer, DW
 				offset_buffer(resampler->buffer->output_buffer, resampler->buffer->output_buffer_position),
 				output_remaining
 			);
+#ifdef _DEBUG
+			printf("Wrote %d bytes directly to playback buffer.\n", output_remaining);
+#endif
 			remaining -= output_remaining;
 			position += output_remaining;
 			resampler->buffer->output_buffer_position += output_remaining;
@@ -265,6 +284,9 @@ DWORD write_playback_data_direct(BASS_SOX_RESAMPLER* resampler, void* buffer, DW
 		}
 	} while (remaining);
 	if (position == BASS_STREAMPROC_END && resampler->settings->keep_alive) {
+#ifdef _DEBUG
+		printf("Ignoring BASS_STREAMPROC_END due to keep_alive.\n");
+#endif
 		resampler->end = FALSE;
 		position = 0;
 	}
@@ -329,6 +351,9 @@ DWORD CALLBACK resampler_proc(HSTREAM handle, void *buffer, DWORD length, void *
 	} while (remaining);
 done:
 	if (position == BASS_STREAMPROC_END && resampler->settings->keep_alive) {
+#ifdef _DEBUG
+		printf("Ignoring BASS_STREAMPROC_END due to keep_alive.\n");
+#endif
 		resampler->end = FALSE;
 		position = 0;
 	}

@@ -81,7 +81,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="background_updater.c" />
+    <ClCompile Include="resampler_updater.c" />
     <ClCompile Include="bass_sox.c" />
     <ClCompile Include="resampler.c" />
     <ClCompile Include="resampler_buffer.c" />
@@ -92,7 +92,7 @@
     <ClCompile Include="ring_buffer.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="background_updater.h" />
+    <ClInclude Include="resampler_updater.h" />
     <ClInclude Include="bass\bass.h" />
     <ClInclude Include="bass\bassasio.h" />
     <ClInclude Include="bass_sox.h" />

@@ -25,16 +25,20 @@ void ring_buffer_free(RING_BUFFER* ring_buffer) {
 	DWORD current_segment;
 	if (ring_buffer->buffer) {
 		free(ring_buffer->buffer);
+		ring_buffer->buffer = NULL;
 	}
 	if (ring_buffer->segments) {
 		for (current_segment = 0; current_segment < ring_buffer->segment_count; current_segment++) {
 			if (ring_buffer->segments[current_segment]) {
 				free(ring_buffer->segments[current_segment]);
+				ring_buffer->segments[current_segment] = NULL;
 			}
 		}
 		free(ring_buffer->segments);
+		ring_buffer->segments = NULL;
 	}
 	free(ring_buffer);
+	ring_buffer = NULL;
 }
 
 BOOL ring_buffer_empty(RING_BUFFER* ring_buffer) {

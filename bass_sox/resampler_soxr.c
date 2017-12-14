@@ -1,3 +1,7 @@
+#ifdef _DEBUG
+#include <stdio.h>
+#endif
+
 #include "resampler_soxr.h"
 
 #define SOXR_DEFAULT_THREADS 1
@@ -5,13 +9,20 @@
 #define SOXR_DEFAULT_PHASE SOXR_LINEAR_PHASE
 
 soxr_datatype_t soxr_datatype(size_t sample_size) {
+	soxr_datatype_t result;
 	if (sample_size == sizeof(short)) {
-		return SOXR_INT16_I;
+		result = SOXR_INT16_I;
 	}
-	if (sample_size == sizeof(float)) {
-		return SOXR_FLOAT32_I;
+	else if (sample_size == sizeof(float)) {
+		result = SOXR_FLOAT32_I;
 	}
-	return 0;
+	else {
+		result = 0;
+	}
+#if _DEBUG
+	printf("Sox data type for sample size: %d = %d\n", sample_size, result);
+#endif
+	return result;
 }
 
 soxr_quality_spec_t get_quality_spec(BASS_SOX_RESAMPLER* resampler) {
@@ -36,6 +47,9 @@ soxr_quality_spec_t get_quality_spec(BASS_SOX_RESAMPLER* resampler) {
 	if (settings->allow_aliasing) {
 		//No longer implemented.
 	}
+#if _DEBUG
+	printf("Sox quality spec: %d = %d\n", recipe, flags);
+#endif
 	return soxr_quality_spec(recipe, flags);
 }
 
@@ -48,6 +62,9 @@ soxr_runtime_spec_t get_runtime_spec(BASS_SOX_RESAMPLER* resampler) {
 	else {
 		threads = SOXR_DEFAULT_THREADS;
 	}
+#if _DEBUG
+	printf("Sox runtime spec: threads = %d\n", threads);
+#endif
 	return soxr_runtime_spec(threads);
 }
 
@@ -72,13 +89,25 @@ BOOL resampler_soxr_create(BASS_SOX_RESAMPLER* resampler) {
 		&runtime_spec);
 
 	if (!resampler->soxr) {
+#if _DEBUG
+		printf("Failed to create soxr.\n");
+#endif
 		return FALSE;
 	}
 
+#if _DEBUG
+	printf("Created soxr: %d.\n", resampler->soxr);
+#endif
 	return TRUE;
 }
 
 BOOL resampler_soxr_free(BASS_SOX_RESAMPLER* resampler) {
+	if (!resampler->soxr) {
+		return TRUE;
+	}
+#if _DEBUG
+	printf("Releasing soxr: %d.\n", resampler->soxr);
+#endif
 	soxr_clear(resampler->soxr);
 	soxr_delete(resampler->soxr);
 	resampler->soxr = NULL;

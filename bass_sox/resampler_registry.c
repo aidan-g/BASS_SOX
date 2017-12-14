@@ -1,3 +1,7 @@
+#ifdef _DEBUG
+#include <stdio.h>
+#endif
+
 #include "resampler_registry.h"
 #include "resampler_lock.h"
 #include "resampler_settings.h"
@@ -12,8 +16,14 @@ BOOL resampler_registry_add(BASS_SOX_RESAMPLER* resampler) {
 			continue;
 		}
 		resamplers[a] = resampler;
+#if _DEBUG
+		printf("Resampler added to registry.\n");
+#endif
 		return TRUE;
 	}
+#if _DEBUG
+	printf("Failed to add resampler to registry.\n");
+#endif
 	return FALSE;
 }
 
@@ -27,13 +37,18 @@ BOOL resampler_registry_remove(BASS_SOX_RESAMPLER* resampler) {
 			continue;
 		}
 		resamplers[a] = NULL;
+#if _DEBUG
+		printf("Resampler removed from registry.\n");
+#endif
 		return TRUE;
 	}
+#if _DEBUG
+	printf("Failed to remove resampler from registry.\n");
+#endif
 	return FALSE;
 }
 
-BOOL resampler_registry_get_all(BASS_SOX_RESAMPLER** __resamplers, DWORD* length)
-{
+BOOL resampler_registry_get_all(BASS_SOX_RESAMPLER** __resamplers, DWORD* length) {
 	BYTE a;
 	*length = 0;
 	for (a = 0; a < MAX_RESAMPLERS; a++) {

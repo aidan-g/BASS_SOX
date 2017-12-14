@@ -57,6 +57,8 @@ typedef struct {
 	soxr_error_t soxr_error;
 	BOOL reload;
 	HANDLE lock;
+	HANDLE thread;
+	volatile BOOL shutdown;
 	volatile BOOL ready;
 } BASS_SOX_RESAMPLER;
 
