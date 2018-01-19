@@ -488,5 +488,82 @@ namespace ManagedBass.Sox.Test
                 Bass.Free();
             }
         }
+
+        /// <summary>
+        /// Multi-thread buffer manipulations.
+        /// </summary>
+        /// <param name="background"></param>
+        [TestCase(false)]
+        [TestCase(true)]
+        public void Test011(bool background)
+        {
+            try
+            {
+                if (!Bass.Init(Bass.NoSoundDevice, 44100))
+                {
+                    Assert.Fail(string.Format("Failed to initialize BASS: {0}", Enum.GetName(typeof(Errors), Bass.LastError)));
+                }
+
+                if (!BassSox.Init())
+                {
+                    Assert.Fail("Failed to initialize SOX.");
+                }
+
+                var channel = Bass.CreateStream(44100, 2, BassFlags.Decode, (handle, buffer, length, user) => length);
+
+                var resampler = BassSox.StreamCreate(192000, BassFlags.Decode, channel);
+                BassSox.ChannelSetAttribute(resampler, SoxChannelAttribute.KeepAlive, true);
+                BassSox.ChannelSetAttribute(resampler, SoxChannelAttribute.Background, background);
+                BassSox.ChannelSetAttribute(resampler, SoxChannelAttribute.BufferLength, 5);
+
+                var shutdown = false;
+                var thread1 = new Thread(() =>
+                {
+                    while (!shutdown)
+                    {
+                        var buffer = new byte[10240];
+                        var length = Bass.ChannelGetData(resampler, buffer, buffer.Length);
+                        Thread.Yield();
+                        Thread.Sleep(10);
+                        Thread.Yield();
+                    }
+                });
+                thread1.Start();
+
+                var random = new Random(unchecked((int)DateTime.Now.Ticks));
+                var thread2 = new Thread(() =>
+                 {
+                     while (!shutdown)
+                     {
+                         BassSox.StreamBuffer(resampler);
+                         Thread.Yield();
+                         Thread.Sleep(10);
+                         Thread.Yield();
+                         BassSox.StreamBufferClear(resampler);
+                         Thread.Yield();
+                         Thread.Sleep(10);
+                         Thread.Yield();
+                         BassSox.ChannelSetAttribute(resampler, SoxChannelAttribute.BufferLength, random.Next(10));
+                         Thread.Yield();
+                         Thread.Sleep(10);
+                         Thread.Yield();
+                     }
+                 });
+                thread2.Start();
+
+                Thread.Sleep(10000);
+                shutdown = true;
+                thread1.Join();
+                thread2.Join();
+
+                Bass.StreamFree(channel);
+                BassSox.StreamFree(resampler);
+            }
+            finally
+            {
+                BassSox.Free();
+                Bass.Free();
+            }
+        }
     }
 }

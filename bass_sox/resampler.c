@@ -275,9 +275,6 @@ DWORD write_playback_data_direct(BASS_SOX_RESAMPLER* resampler, void* buffer, DW
 					break;
 				}
 				else {
-#ifdef _DEBUG
-					printf("Buffer underrun while reading output buffer.\n");
-#endif
 					break;
 				}
 			}
@@ -289,6 +286,11 @@ DWORD write_playback_data_direct(BASS_SOX_RESAMPLER* resampler, void* buffer, DW
 #endif
 		resampler->end = FALSE;
 		position = 0;
+	}
+	else if (position < length) {
+#ifdef _DEBUG
+		printf("Buffer underrun while writing to playback buffer.\n");
+#endif
 	}
 	return position;
 }
@@ -306,6 +308,9 @@ DWORD CALLBACK resampler_proc(HSTREAM handle, void *buffer, DWORD length, void *
 		resampler_populate(resampler);
 	}
 	if (!resampler->ready) {
+#ifdef _DEBUG
+		printf("Resampler is not yet ready.\n");
+#endif
 		return 0;
 	}
 	playback = resampler->buffer->playback;
@@ -336,9 +341,6 @@ DWORD CALLBACK resampler_proc(HSTREAM handle, void *buffer, DWORD length, void *
 						goto done;
 					}
 					else {
-#ifdef _DEBUG
-						printf("Buffer underrun while reading playback buffer.\n");
-#endif
 						goto done;
 					}
 				}
@@ -356,6 +358,11 @@ done:
 #endif
 		resampler->end = FALSE;
 		position = 0;
+	}
+	else if (position < length) {
+#ifdef _DEBUG
+		printf("Buffer underrun while writing to playback buffer.\n");
+#endif
 	}
 	return position;
 }

@@ -45,8 +45,9 @@ int main()
 	BASS_SOX_ChannelSetAttribute(playback_channel, BACKGROUND, TRUE);
 
 	if (!BASS_SOX_StreamBuffer(playback_channel)) {
-		printf("Failed to buffer playback stream: %d\n", BASS_ErrorGetCode());
-		return 1;
+		//We set to background update, this call will often fail due to locking or simply not having any work to do.
+		//printf("Failed to buffer playback stream: %d\n", BASS_ErrorGetCode());
+		//return 1;
 	}
 
 	//Play the re sampler stream.
