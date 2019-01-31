@@ -14,6 +14,13 @@
 
 BOOL is_initialized = FALSE;
 
+//I have no idea how to prevent linking against this routine in msvcrt.
+//It doesn't exist on Windows XP.
+//Hopefully it doesn't do anything important.
+int _except_handler4_common() {
+	return 0;
+}
+
 //Determine whether the specified flags imply BASS_SAMPLE_FLOAT.
 BOOL is_float(DWORD flags) {
 	return  (flags & BASS_SAMPLE_FLOAT) == BASS_SAMPLE_FLOAT;
