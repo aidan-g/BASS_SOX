@@ -1,0 +1,7 @@
+﻿<Project>
+	<ItemGroup>
+		<None Include="$(MSBuildThisFileDirectory)\bass_sox_asio.dll" Link="bass_sox_asio.dll">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
+</Project>

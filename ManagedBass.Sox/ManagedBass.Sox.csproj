@@ -4,6 +4,8 @@
     <TargetFrameworks>net40;net461</TargetFrameworks>
     <AssemblyName>ManagedBass.Sox</AssemblyName>
     <OutputPath>..\distribution\</OutputPath>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Version>0.3.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,6 +22,20 @@
 
   <ItemGroup>
     <Folder Include="Properties\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="ManagedBass.Sox.targets" PackagePath="build">
+      <pack>true</pack>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\lib\bass_sox.dll" Link="bass_sox.dll" PackagePath="build">
+      <Pack>true</Pack>
+      <PackageCopyToOutput>true</PackageCopyToOutput>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

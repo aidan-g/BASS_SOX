@@ -4,6 +4,8 @@
     <TargetFrameworks>net40;net461</TargetFrameworks>
     <AssemblyName>ManagedBass.Sox.Asio</AssemblyName>
     <OutputPath>..\distribution\</OutputPath>
+    <Version>0.3.0</Version>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,6 +22,20 @@
 
   <ItemGroup>
     <Folder Include="Properties\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="ManagedBass.Sox.Asio.targets" PackagePath="build">
+      <pack>true</pack>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\lib\bass_sox_asio.dll" Link="bass_sox_asio.dll" PackagePath="build">
+      <Pack>true</Pack>
+      <PackageCopyToOutput>true</PackageCopyToOutput>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>
